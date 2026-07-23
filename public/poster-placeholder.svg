@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="342" height="513" viewBox="0 0 342 513" fill="none">
+  <rect width="342" height="513" fill="#EDE5DC"/>
+  <g stroke="#DCD2C8" stroke-width="4">
+    <rect x="30" y="40" width="14" height="433" rx="7"/>
+    <rect x="298" y="40" width="14" height="433" rx="7"/>
+  </g>
+  <path d="M150 220L205 256.5L150 293V220Z" stroke="#B8200F" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+  <text x="171" y="340" font-family="Archivo, sans-serif" font-size="18" font-weight="700" fill="#6B5A62" text-anchor="middle">no poster</text>
+</svg>
