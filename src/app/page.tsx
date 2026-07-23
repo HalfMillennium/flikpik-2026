@@ -6,6 +6,16 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Footer } from "@/components/layout/Footer";
 import { GuestEntryButton } from "@/components/layout/GuestEntryButton";
 import { PixelField } from "@/components/ui/PixelField";
+import { posterUrl } from "@/lib/images";
+
+// Real TMDB poster paths for the landing-page card fan.
+const FAN_POSTERS = [
+  { title: "Pulp Fiction", path: "/vQWk5YBFWF4bZaofAbv0tShwBvQ.jpg" },
+  { title: "Spirited Away", path: "/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg" },
+  { title: "The Grand Budapest Hotel", path: "/zOVCqKUzjFKqa1eDMcOzvXwthY4.jpg" },
+  { title: "Dune: Part Two", path: "/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg" },
+  { title: "La La Land", path: "/uDO8zWDhfWwoFdKS4fzkUJt0Rf0.jpg" },
+];
 
 export default async function LandingPage() {
   const session = await auth();
@@ -185,24 +195,28 @@ export default async function LandingPage() {
               Sign up free
             </ButtonLink>
           </div>
-          {/* CardFan of poster placeholders */}
+          {/* CardFan of movie posters */}
           <div className="relative mt-12 flex items-end justify-center gap-[-20px]">
-            {[-15, -7, 0, 7, 15].map((rot, i) => (
-              <div
-                key={i}
-                className="aspect-[2/3] w-20 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-[var(--color-paper-tint)] shadow-xl sm:w-24"
-                style={{
-                  transform: `rotate(${rot}deg) translateY(${Math.abs(rot)}px)`,
-                  marginInline: "-8px",
-                }}
-              >
-                <img
-                  src="/poster-placeholder.svg"
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            ))}
+            {FAN_POSTERS.map((poster, i) => {
+              const rot = [-15, -7, 0, 7, 15][i];
+              return (
+                <div
+                  key={poster.title}
+                  className="aspect-[2/3] w-20 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-[var(--color-paper-tint)] shadow-xl sm:w-24"
+                  style={{
+                    transform: `rotate(${rot}deg) translateY(${Math.abs(rot)}px)`,
+                    marginInline: "-8px",
+                  }}
+                >
+                  <img
+                    src={posterUrl(poster.path, "w500")}
+                    alt={`${poster.title} poster`}
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

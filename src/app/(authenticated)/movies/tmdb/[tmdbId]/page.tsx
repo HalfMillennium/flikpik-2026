@@ -149,7 +149,7 @@ export default function GuestMovieDetailPage({
                   <StarRating value={Number(movie.tmdbRating) / 2} showValue />
                 </div>
               )}
-              <div className="ml-auto flex flex-col items-end gap-1.5 sm:ml-0 sm:items-start">
+              <div className="ml-auto flex flex-col items-center gap-1.5 sm:ml-0 sm:items-start">
                 <div className="flex gap-2">
                   <Button
                     variant={status === "want_to_watch" ? "primary" : "secondary"}
