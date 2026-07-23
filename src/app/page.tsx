@@ -5,6 +5,7 @@ import { Logo } from "@/components/ui/Logo";
 import { ButtonLink } from "@/components/ui/Button";
 import { Footer } from "@/components/layout/Footer";
 import { GuestEntryButton } from "@/components/layout/GuestEntryButton";
+import { PixelField } from "@/components/ui/PixelField";
 
 export default async function LandingPage() {
   const session = await auth();
@@ -31,7 +32,30 @@ export default async function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="mx-auto max-w-4xl px-6 pb-16 pt-20 text-center sm:pt-28">
+      <div className="relative overflow-hidden">
+        {/* ambient animated pixel field — warm, subtle, behind the headline */}
+        <PixelField
+          palette="paper"
+          cell={13}
+          speed={0.32}
+          className="absolute inset-0"
+          style={{ opacity: 0.6 }}
+        />
+        {/* paper scrim keeps the headline crisp; motion peeks at the edges */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(120% 85% at 50% 40%, var(--color-paper) 16%, transparent 76%)",
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-28"
+          style={{
+            background: "linear-gradient(to top, var(--color-paper), transparent)",
+          }}
+        />
+        <section className="relative mx-auto max-w-4xl px-6 pb-16 pt-20 text-center sm:pt-28">
         <h1 className="type-hero">
           Every movie night
           <br />
@@ -52,7 +76,8 @@ export default async function LandingPage() {
             See how it works
           </ButtonLink>
         </div>
-      </section>
+        </section>
+      </div>
 
       {/* How it works */}
       <section
@@ -134,17 +159,34 @@ export default async function LandingPage() {
 
       {/* TextureBand sendoff */}
       <section className="mx-auto my-8 max-w-6xl px-6">
-        <div className="grain relative overflow-hidden rounded-3xl bg-[var(--color-ink-panel)] px-8 py-16 text-center">
-          <h2 className="type-display text-[var(--color-paper-on-dark)]">
+        <div className="relative overflow-hidden rounded-3xl bg-[var(--color-ink-panel)] px-8 py-16 text-center">
+          {/* animated ember pixel field — the showcase moment */}
+          <PixelField
+            palette="ember"
+            cell={11}
+            speed={0.5}
+            levels={7}
+            className="absolute inset-0"
+            style={{ opacity: 0.85 }}
+          />
+          {/* darken center for text contrast */}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(90% 80% at 50% 50%, rgba(21,16,21,0.72), rgba(21,16,21,0.35))",
+            }}
+          />
+          <h2 className="relative type-display text-[var(--color-paper-on-dark)]">
             Stop arguing. Start watching.
           </h2>
-          <div className="mt-8">
+          <div className="relative mt-8">
             <ButtonLink href="/signup" size="lg">
               Sign up free
             </ButtonLink>
           </div>
           {/* CardFan of poster placeholders */}
-          <div className="mt-12 flex items-end justify-center gap-[-20px]">
+          <div className="relative mt-12 flex items-end justify-center gap-[-20px]">
             {[-15, -7, 0, 7, 15].map((rot, i) => (
               <div
                 key={i}
