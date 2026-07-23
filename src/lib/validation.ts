@@ -25,7 +25,8 @@ export const updateProfileSchema = z.object({
 export const watchlistActionSchema = z.object({
   tmdbId: z.number().int().positive().optional(),
   movieId: z.string().uuid().optional(),
-  action: z.enum(["add", "remove", "mark_watched", "mark_unwatched"]),
+  action: z.enum(["add", "remove", "mark_watched", "mark_unwatched", "set"]),
+  status: z.enum(["want_to_watch", "watched"]).optional(),
 });
 
 export const reviewSchema = z.object({

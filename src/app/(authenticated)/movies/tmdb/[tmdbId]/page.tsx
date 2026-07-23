@@ -33,7 +33,7 @@ export default function GuestMovieDetailPage({
 }) {
   const { tmdbId } = use(params);
   const id = Number(tmdbId);
-  const { has, add, remove } = useGuest();
+  const { statusOf, upsert, remove } = useGuest();
   const toast = useToast();
   const [movie, setMovie] = useState<GuestDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,23 +75,24 @@ export default function GuestMovieDetailPage({
     );
   }
 
-  const onList = has(movie.tmdbId);
+  const status = statusOf(movie.tmdbId);
   const backdrop = backdropUrl(movie.backdropPath);
 
-  function toggle() {
-    if (onList) {
-      remove(movie!.tmdbId);
-      toast("Removed from list");
-    } else {
-      add({
+  function choose(next: "want_to_watch" | "watched") {
+    upsert(
+      {
         tmdbId: movie!.tmdbId,
         title: movie!.title,
         posterPath: movie!.posterPath,
         releaseDate: movie!.releaseDate,
         tmdbRating: movie!.tmdbRating,
-      });
-      toast("Added to watch list", "success");
-    }
+      },
+      next,
+    );
+    toast(
+      next === "watched" ? "Marked as watched" : "Added to watch list",
+      "success",
+    );
   }
 
   return (
@@ -148,10 +149,32 @@ export default function GuestMovieDetailPage({
                   <StarRating value={Number(movie.tmdbRating) / 2} showValue />
                 </div>
               )}
-              <div className="ml-auto sm:ml-0">
-                <Button variant={onList ? "secondary" : "primary"} onClick={toggle}>
-                  {onList ? "✓ On your list" : "+ Add to watch list"}
-                </Button>
+              <div className="ml-auto flex flex-col items-end gap-1.5 sm:ml-0 sm:items-start">
+                <div className="flex gap-2">
+                  <Button
+                    variant={status === "want_to_watch" ? "primary" : "secondary"}
+                    onClick={() => choose("want_to_watch")}
+                  >
+                    {status === "want_to_watch" ? "✓ " : ""}Want to Watch
+                  </Button>
+                  <Button
+                    variant={status === "watched" ? "primary" : "secondary"}
+                    onClick={() => choose("watched")}
+                  >
+                    {status === "watched" ? "✓ " : ""}Watched
+                  </Button>
+                </div>
+                {status && (
+                  <button
+                    onClick={() => {
+                      remove(movie.tmdbId);
+                      toast("Removed from list");
+                    }}
+                    className="text-xs font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-red-deep)]"
+                  >
+                    Remove from list
+                  </button>
+                )}
               </div>
             </div>
           </div>

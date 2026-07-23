@@ -37,6 +37,10 @@ type GuestContextValue = {
   has: (tmdbId: number) => boolean;
   statusOf: (tmdbId: number) => GuestMovie["status"] | null;
   add: (m: Omit<GuestMovie, "status" | "addedAt">) => void;
+  upsert: (
+    m: Omit<GuestMovie, "status" | "addedAt">,
+    status: GuestMovie["status"],
+  ) => void;
   remove: (tmdbId: number) => void;
   setStatus: (tmdbId: number, status: GuestMovie["status"]) => void;
   clear: () => void;
@@ -124,6 +128,18 @@ export function GuestProvider({ children }: { children: ReactNode }) {
     [list, persist],
   );
 
+  const upsert = useCallback<GuestContextValue["upsert"]>(
+    (m, status) => {
+      const exists = list.some((x) => x.tmdbId === m.tmdbId);
+      if (exists) {
+        persist(list.map((x) => (x.tmdbId === m.tmdbId ? { ...x, status } : x)));
+      } else {
+        persist([...list, { ...m, status, addedAt: Date.now() }]);
+      }
+    },
+    [list, persist],
+  );
+
   const remove = useCallback<GuestContextValue["remove"]>(
     (tmdbId) => persist(list.filter((m) => m.tmdbId !== tmdbId)),
     [list, persist],
@@ -150,6 +166,7 @@ export function GuestProvider({ children }: { children: ReactNode }) {
         has,
         statusOf,
         add,
+        upsert,
         remove,
         setStatus,
         clear,

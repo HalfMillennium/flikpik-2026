@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Popover, MenuItem } from "@/components/ui/Popover";
 import { useToast } from "@/components/providers/ToastProvider";
+
+type Status = "none" | "want_to_watch" | "watched";
 
 export function AddToListButton({
   movieId,
@@ -17,94 +18,76 @@ export function AddToListButton({
 }) {
   const router = useRouter();
   const toast = useToast();
-  const [onList, setOnList] = useState(initialOnList);
-  const [watched, setWatched] = useState(initialWatched);
+  const [status, setStatus] = useState<Status>(
+    initialWatched ? "watched" : initialOnList ? "want_to_watch" : "none",
+  );
   const [busy, setBusy] = useState(false);
 
-  async function act(action: string, optimistic: () => void, revert: () => void) {
-    optimistic();
+  async function choose(next: "want_to_watch" | "watched") {
+    const prev = status;
+    setStatus(next);
     setBusy(true);
     const res = await fetch("/api/watchlist", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ movieId, action }),
+      body: JSON.stringify({ movieId, action: "set", status: next }),
     });
     setBusy(false);
     if (!res.ok) {
-      revert();
+      setStatus(prev);
       toast("Something went wrong", "error");
       return;
     }
+    toast(next === "watched" ? "Marked as watched" : "Added to watch list", "success");
     router.refresh();
   }
 
-  if (!onList) {
-    return (
-      <Button
-        disabled={busy}
-        onClick={() =>
-          act(
-            "add",
-            () => setOnList(true),
-            () => setOnList(false),
-          ).then(() => toast("Added to watch list", "success"))
-        }
-      >
-        + Add to watch list
-      </Button>
-    );
+  async function removeFromList() {
+    const prev = status;
+    setStatus("none");
+    setBusy(true);
+    const res = await fetch("/api/watchlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ movieId, action: "remove" }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      setStatus(prev);
+      toast("Something went wrong", "error");
+      return;
+    }
+    toast("Removed from list");
+    router.refresh();
   }
 
   return (
-    <Popover
-      trigger={({ toggle }) => (
-        <Button variant="secondary" onClick={toggle} disabled={busy}>
-          {watched ? "✓ Watched" : "✓ On your list"}
-          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
-            <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-          </svg>
+    <div className="flex flex-col items-center gap-1.5 sm:items-start">
+      <div className="flex gap-2">
+        <Button
+          variant={status === "want_to_watch" ? "primary" : "secondary"}
+          onClick={() => choose("want_to_watch")}
+          disabled={busy}
+        >
+          {status === "want_to_watch" ? "✓ " : ""}Want to Watch
         </Button>
+        <Button
+          variant={status === "watched" ? "primary" : "secondary"}
+          onClick={() => choose("watched")}
+          disabled={busy}
+        >
+          {status === "watched" ? "✓ " : ""}Watched
+        </Button>
+      </div>
+      {status !== "none" && (
+        <button
+          onClick={removeFromList}
+          disabled={busy}
+          className="text-xs font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-red-deep)]"
+        >
+          Remove from list
+        </button>
       )}
-    >
-      {({ close }) => (
-        <>
-          {watched ? (
-            <MenuItem
-              onClick={() => {
-                close();
-                act("mark_unwatched", () => setWatched(false), () => setWatched(true));
-              }}
-            >
-              Move to Want to Watch
-            </MenuItem>
-          ) : (
-            <MenuItem
-              onClick={() => {
-                close();
-                act("mark_watched", () => setWatched(true), () => setWatched(false));
-              }}
-            >
-              Mark as watched
-            </MenuItem>
-          )}
-          <MenuItem
-            danger
-            onClick={() => {
-              close();
-              act(
-                "remove",
-                () => {
-                  setOnList(false);
-                  setWatched(false);
-                },
-                () => setOnList(true),
-              ).then(() => toast("Removed from list"));
-            }}
-          >
-            Remove from list
-          </MenuItem>
-        </>
-      )}
-    </Popover>
+    </div>
   );
 }

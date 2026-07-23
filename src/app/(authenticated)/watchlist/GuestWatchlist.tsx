@@ -174,7 +174,7 @@ function GuestCard({
           onClick={onToggleWatched}
           className="rounded px-1.5 py-1 text-xs font-medium text-[var(--color-ink-soft)] hover:text-[var(--color-red)]"
         >
-          {movie.status === "watched" ? "↩ Unwatch" : "✓ Watched"}
+          {movie.status === "watched" ? "Move to Want to Watch" : "Mark watched"}
         </button>
         <button
           onClick={onRemove}

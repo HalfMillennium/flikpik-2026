@@ -49,6 +49,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, entry: entry ?? null, movieId });
     }
 
+    if (action === "set") {
+      // Upsert to the requested status (adds it if it isn't on the list yet).
+      const status = parsed.data.status ?? "want_to_watch";
+      const [entry] = await db
+        .insert(watchListEntries)
+        .values({ userId, movieId, status })
+        .onConflictDoUpdate({
+          target: [watchListEntries.userId, watchListEntries.movieId],
+          set: { status },
+        })
+        .returning();
+      return NextResponse.json({ ok: true, entry: entry ?? null, movieId });
+    }
+
     if (action === "remove") {
       await db
         .delete(watchListEntries)
