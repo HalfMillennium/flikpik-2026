@@ -45,12 +45,12 @@ export default async function LandingPage() {
           <ButtonLink href="/signup" size="lg">
             Get started — it&apos;s free
           </ButtonLink>
-          <ButtonLink href="#how" variant="secondary" size="lg">
+          <GuestEntryButton />
+        </div>
+        <div className="mt-4">
+          <ButtonLink href="#how" variant="ghost" size="sm">
             See how it works
           </ButtonLink>
-        </div>
-        <div className="mt-5">
-          <GuestEntryButton />
         </div>
       </section>
 
