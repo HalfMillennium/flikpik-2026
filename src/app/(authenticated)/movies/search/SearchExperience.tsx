@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { SearchBar } from "@/components/movies/SearchBar";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/providers/ToastProvider";
+import { useGuest } from "@/components/providers/GuestProvider";
 import { posterUrl } from "@/lib/images";
 import { yearOf } from "@/lib/utils";
 
@@ -24,15 +26,25 @@ type RandomMovie = Result & {
 };
 
 export function SearchExperience() {
+  const { status } = useSession();
+  const isAuthed = status === "authenticated";
+  const guest = useGuest();
+
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Result[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [added, setAdded] = useState<Set<number>>(new Set());
+  const [addedDb, setAddedDb] = useState<Set<number>>(new Set());
   const [random, setRandom] = useState<RandomMovie | null>(null);
   const [randomLoading, setRandomLoading] = useState(false);
   const toast = useToast();
+
+  // Whether a movie is already on the active list (DB for members, local for guests).
+  const isAdded = useCallback(
+    (tmdbId: number) => (isAuthed ? addedDb.has(tmdbId) : guest.has(tmdbId)),
+    [isAuthed, addedDb, guest],
+  );
 
   const runSearch = useCallback(async (q: string, p: number) => {
     if (!q.trim()) {
@@ -55,7 +67,6 @@ export function SearchExperience() {
     }
   }, []);
 
-  // Debounced search on query change.
   const debounce = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
     clearTimeout(debounce.current);
@@ -64,24 +75,40 @@ export function SearchExperience() {
     return () => clearTimeout(debounce.current);
   }, [query, runSearch]);
 
-  async function addMovie(tmdbId: number) {
-    setAdded((s) => new Set(s).add(tmdbId));
-    const res = await fetch("/api/watchlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tmdbId, action: "add" }),
-    });
-    if (res.ok) {
-      toast("Added to watch list", "success");
-    } else {
-      setAdded((s) => {
-        const next = new Set(s);
-        next.delete(tmdbId);
-        return next;
+  const addMovie = useCallback(
+    async (m: Result) => {
+      if (!isAuthed) {
+        // Local-only guest library.
+        guest.add({
+          tmdbId: m.tmdbId,
+          title: m.title,
+          posterPath: m.posterPath,
+          releaseDate: m.releaseDate,
+          tmdbRating: m.tmdbRating,
+        });
+        toast("Added to watch list", "success");
+        return;
+      }
+
+      setAddedDb((s) => new Set(s).add(m.tmdbId));
+      const res = await fetch("/api/watchlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tmdbId: m.tmdbId, action: "add" }),
       });
-      toast("Could not add that movie", "error");
-    }
-  }
+      if (res.ok) {
+        toast("Added to watch list", "success");
+      } else {
+        setAddedDb((s) => {
+          const next = new Set(s);
+          next.delete(m.tmdbId);
+          return next;
+        });
+        toast("Could not add that movie", "error");
+      }
+    },
+    [isAuthed, guest, toast],
+  );
 
   async function surpriseMe() {
     setRandomLoading(true);
@@ -98,12 +125,7 @@ export function SearchExperience() {
     <div>
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="flex-1">
-          <SearchBar
-            value={query}
-            onChange={setQuery}
-            loading={loading}
-            autoFocus
-          />
+          <SearchBar value={query} onChange={setQuery} loading={loading} autoFocus />
         </div>
         <Button
           variant="secondary"
@@ -118,8 +140,9 @@ export function SearchExperience() {
       {random && (
         <FeaturedRandom
           movie={random}
-          added={added.has(random.tmdbId)}
-          onAdd={() => addMovie(random.tmdbId)}
+          isAuthed={isAuthed}
+          added={isAdded(random.tmdbId)}
+          onAdd={() => addMovie(random)}
           onDismiss={() => setRandom(null)}
         />
       )}
@@ -130,8 +153,9 @@ export function SearchExperience() {
             <SearchResultCard
               key={r.tmdbId}
               result={r}
-              added={added.has(r.tmdbId)}
-              onAdd={() => addMovie(r.tmdbId)}
+              isAuthed={isAuthed}
+              added={isAdded(r.tmdbId)}
+              onAdd={() => addMovie(r)}
             />
           ))}
         </div>
@@ -164,10 +188,12 @@ export function SearchExperience() {
 
 function SearchResultCard({
   result,
+  isAuthed,
   added,
   onAdd,
 }: {
   result: Result;
+  isAuthed: boolean;
   added: boolean;
   onAdd: () => void;
 }) {
@@ -175,8 +201,12 @@ function SearchResultCard({
   const [opening, setOpening] = useState(false);
 
   async function openDetail() {
+    // Guests browse by TMDB id (no DB); members get the DB-backed detail page.
+    if (!isAuthed) {
+      router.push(`/movies/tmdb/${result.tmdbId}`);
+      return;
+    }
     setOpening(true);
-    // Ensure the movie exists locally, then navigate to its detail page.
     const res = await fetch(`/api/movies/${result.tmdbId}`, { method: "POST" });
     if (res.ok) {
       const data = await res.json();
@@ -227,18 +257,25 @@ function SearchResultCard({
 
 function FeaturedRandom({
   movie,
+  isAuthed,
   added,
   onAdd,
   onDismiss,
 }: {
   movie: RandomMovie;
+  isAuthed: boolean;
   added: boolean;
   onAdd: () => void;
   onDismiss: () => void;
 }) {
+  const router = useRouter();
   return (
     <div className="fade-up mt-6 flex flex-col gap-5 overflow-hidden rounded-2xl border border-[var(--color-line)] bg-[var(--color-paper-raised)] p-5 shadow-[var(--shadow-card)] sm:flex-row">
-      <div className="relative aspect-[2/3] w-32 shrink-0 self-center overflow-hidden rounded-lg sm:self-start">
+      <button
+        onClick={() => !isAuthed && router.push(`/movies/tmdb/${movie.tmdbId}`)}
+        className="relative aspect-[2/3] w-32 shrink-0 cursor-pointer self-center overflow-hidden rounded-lg sm:self-start"
+        aria-label={`Open ${movie.title}`}
+      >
         <Image
           src={posterUrl(movie.posterPath, "w342")}
           alt={`${movie.title} poster`}
@@ -246,7 +283,7 @@ function FeaturedRandom({
           sizes="128px"
           className="object-cover"
         />
-      </div>
+      </button>
       <div className="flex-1">
         <div className="flex items-start justify-between">
           <span className="text-xs font-bold uppercase tracking-widest text-[var(--color-red)]">

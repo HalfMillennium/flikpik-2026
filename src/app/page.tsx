@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { Logo } from "@/components/ui/Logo";
 import { ButtonLink } from "@/components/ui/Button";
 import { Footer } from "@/components/layout/Footer";
+import { GuestEntryButton } from "@/components/layout/GuestEntryButton";
 
 export default async function LandingPage() {
   const session = await auth();
@@ -47,6 +48,9 @@ export default async function LandingPage() {
           <ButtonLink href="#how" variant="secondary" size="lg">
             See how it works
           </ButtonLink>
+        </div>
+        <div className="mt-5">
+          <GuestEntryButton />
         </div>
       </section>
 

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { discoverRandom } from "@/lib/tmdb";
-import { requireUser, serverError, notFound } from "@/lib/api";
+import { limitByUserOrIp, serverError, notFound } from "@/lib/api";
 
-export async function GET() {
-  const guard = await requireUser("tmdb");
-  if (guard.error) return guard.error;
+export async function GET(req: Request) {
+  const guard = await limitByUserOrIp(req, "tmdb");
+  if ("error" in guard) return guard.error;
 
   try {
     const movie = await discoverRandom();

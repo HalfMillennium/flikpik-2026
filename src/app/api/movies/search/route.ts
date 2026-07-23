@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { searchMovies } from "@/lib/tmdb";
-import { requireUser, serverError } from "@/lib/api";
+import { limitByUserOrIp, serverError } from "@/lib/api";
 
+// Guests (no account) can search TMDB — rate-limited by IP.
 export async function GET(req: Request) {
-  const guard = await requireUser("tmdb");
-  if (guard.error) return guard.error;
+  const guard = await limitByUserOrIp(req, "tmdb");
+  if ("error" in guard) return guard.error;
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim() ?? "";

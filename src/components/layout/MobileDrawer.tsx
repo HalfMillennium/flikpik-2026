@@ -71,6 +71,21 @@ export function MobileDrawer({
           ) : (
             <>
               <Link
+                href="/watchlist"
+                onClick={onClose}
+                className="rounded-lg px-3 py-3 text-[17px] font-medium hover:bg-[var(--color-paper-tint)]"
+              >
+                Watch List
+              </Link>
+              <Link
+                href="/movies/search"
+                onClick={onClose}
+                className="rounded-lg px-3 py-3 text-[17px] font-medium hover:bg-[var(--color-paper-tint)]"
+              >
+                Search movies
+              </Link>
+              <div className="my-2 h-px bg-[var(--color-line)]" />
+              <Link
                 href="/login"
                 onClick={onClose}
                 className="rounded-lg px-3 py-3 text-[17px] font-medium hover:bg-[var(--color-paper-tint)]"

@@ -3,6 +3,7 @@ import { Archivo, Inter } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { ToastProvider } from "@/components/providers/ToastProvider";
+import { GuestProvider } from "@/components/providers/GuestProvider";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -39,7 +40,9 @@ export default function RootLayout({
     <html lang="en" className={`${archivo.variable} ${inter.variable}`}>
       <body className="grain min-h-screen">
         <SessionProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <GuestProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </GuestProvider>
         </SessionProvider>
       </body>
     </html>

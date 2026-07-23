@@ -10,6 +10,16 @@ This is a ground-up rewrite of
 (Express/Handlebars/MongoDB) rebuilt in **Next.js 15** with a modern UI,
 real-time sessions, and a relational database.
 
+## Guest mode (sign-up is optional)
+
+You don't need an account to try flikpik. **"Browse without an account"** on the
+landing page (or any Watch List / Search link) drops you into a local-only
+experience: search TMDB, build a watch list, and mark things watched — all
+stored in your browser (`localStorage`), never the database. Account-only
+features (groups, movie-night sessions, and shared reviews) prompt a free
+sign-up. Middleware gates the account-only routes; the watch list and search
+render for everyone.
+
 ## Stack
 
 | Layer | Tech |

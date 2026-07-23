@@ -4,6 +4,7 @@ import { MovieCard } from "@/components/movies/MovieCard";
 import { ButtonLink } from "@/components/ui/Button";
 import { WatchlistControls } from "./WatchlistControls";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { GuestWatchlist } from "./GuestWatchlist";
 
 export const metadata = { title: "Watch List" };
 
@@ -15,7 +16,12 @@ export default async function WatchlistPage({
   searchParams: Promise<{ tab?: string; sort?: string }>;
 }) {
   const session = await auth();
-  const userId = session!.user.id;
+
+  // Guests (no account) get a local-only, client-rendered list.
+  if (!session?.user) {
+    return <GuestWatchlist />;
+  }
+  const userId = session.user.id;
 
   const params = await searchParams;
   const tab: WatchStatus =

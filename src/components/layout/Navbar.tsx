@@ -43,6 +43,7 @@ export function Navbar() {
               <div className="h-10 w-40" />
             ) : (
               <>
+                <NavLink href="/watchlist">Watch List</NavLink>
                 <NavLink href="/login">Log in</NavLink>
                 <ButtonLink href="/signup" size="sm" className="ml-2">
                   Sign up
