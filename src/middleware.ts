@@ -29,7 +29,11 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
+  // Guard pages only. Every /api route does its own auth (401 JSON for
+  // protected routes; movie search/detail allow guests), so exclude all of
+  // /api here — otherwise the middleware would 307-redirect API calls to
+  // /login and break guest search.
   matcher: [
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|poster-placeholder.svg|icon.svg|.*\\.png$|.*\\.svg$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|poster-placeholder.svg|icon.svg|.*\\.png$|.*\\.svg$).*)",
   ],
 };

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Archivo, Inter } from "next/font/google";
+import { Archivo, Inter, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { ToastProvider } from "@/components/providers/ToastProvider";
@@ -15,6 +15,14 @@ const archivo = Archivo({
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+// Distinctive wordmark face for the flikpik logo.
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  variable: "--font-logo",
   display: "swap",
 });
 
@@ -37,7 +45,10 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${archivo.variable} ${inter.variable}`}>
+    <html
+      lang="en"
+      className={`${archivo.variable} ${inter.variable} ${bricolage.variable}`}
+    >
       <body className="grain min-h-screen">
         <SessionProvider>
           <GuestProvider>
