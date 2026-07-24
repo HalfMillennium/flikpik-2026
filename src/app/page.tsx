@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { Logo } from "@/components/ui/Logo";
@@ -19,7 +18,7 @@ const FAN_POSTERS = [
 
 export default async function LandingPage() {
   const session = await auth();
-  if (session?.user) redirect("/watchlist");
+  const signedIn = Boolean(session?.user);
 
   return (
     <div className="relative">
@@ -28,15 +27,23 @@ export default async function LandingPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Logo />
           <div className="flex items-center gap-2">
-            <Link
-              href="/login"
-              className="rounded-full px-4 py-2 text-[15px] font-medium hover:bg-[var(--color-paper-tint)]"
-            >
-              Log in
-            </Link>
-            <ButtonLink href="/signup" size="sm">
-              Sign up
-            </ButtonLink>
+            {signedIn ? (
+              <ButtonLink href="/watchlist" size="sm">
+                Open app
+              </ButtonLink>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="rounded-full px-4 py-2 text-[15px] font-medium hover:bg-[var(--color-paper-tint)]"
+                >
+                  Log in
+                </Link>
+                <ButtonLink href="/signup" size="sm">
+                  Sign up
+                </ButtonLink>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -76,10 +83,18 @@ export default async function LandingPage() {
           movie wins. That&apos;s it.
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-          <ButtonLink href="/signup" size="lg">
-            Get started — it&apos;s free
-          </ButtonLink>
-          <GuestEntryButton />
+          {signedIn ? (
+            <ButtonLink href="/watchlist" size="lg">
+              Back to your watchlist
+            </ButtonLink>
+          ) : (
+            <>
+              <ButtonLink href="/signup" size="lg">
+                Get started — it&apos;s free
+              </ButtonLink>
+              <GuestEntryButton />
+            </>
+          )}
         </div>
         <div className="mt-4">
           <ButtonLink href="#how" variant="ghost" size="sm">
@@ -191,9 +206,15 @@ export default async function LandingPage() {
             Stop arguing. Start watching.
           </h2>
           <div className="relative mt-8">
-            <ButtonLink href="/signup" size="lg">
-              Sign up free
-            </ButtonLink>
+            {signedIn ? (
+              <ButtonLink href="/watchlist" size="lg">
+                Open your watchlist
+              </ButtonLink>
+            ) : (
+              <ButtonLink href="/signup" size="lg">
+                Sign up free
+              </ButtonLink>
+            )}
           </div>
           {/* CardFan of movie posters */}
           <div className="relative mt-12 flex items-end justify-center gap-[-20px]">
