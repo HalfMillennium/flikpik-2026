@@ -6,7 +6,8 @@ import { getToken } from "next-auth/jwt";
 const PUBLIC_PATHS = new Set(["/", "/login", "/signup"]);
 
 // Guest-accessible app pages (local-only experience, no account needed).
-const GUEST_PREFIXES = ["/watchlist", "/movies/search", "/movies/tmdb"];
+// `/rooms` is the anonymous decision-session flow — fully account-free.
+const GUEST_PREFIXES = ["/watchlist", "/movies/search", "/movies/tmdb", "/rooms"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

@@ -197,6 +197,94 @@ export const sessionMembers = pgTable(
   (t) => [uniqueIndex("uq_session_members_session_user").on(t.sessionId, t.userId)],
 );
 
+// ══ Anonymous rooms ══════════════════════════════════════════════════════
+// Account-free, ephemeral decision sessions. Identity is scoped to the room
+// (host/participant tokens), not to a user. TTL'd via expires_at.
+
+// ── rooms ────────────────────────────────────────────────────────────────
+export const rooms = pgTable(
+  "rooms",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    joinCode: varchar("join_code", { length: 8 }).notNull().unique(),
+    hostToken: varchar("host_token", { length: 64 }).notNull(),
+    status: varchar("status", { length: 20 }).default("lobby").notNull(),
+    mpaaFilters: jsonb("mpaa_filters").$type<string[]>().default([]),
+    voteThreshold: integer("vote_threshold").default(0).notNull(),
+    winnerMovieId: uuid("winner_movie_id").references(() => movies.id),
+    locked: boolean("locked").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    startedAt: timestamp("started_at"),
+    endedAt: timestamp("ended_at"),
+    expiresAt: timestamp("expires_at").notNull(),
+  },
+  (t) => [index("idx_rooms_join_code").on(t.joinCode)],
+);
+
+// ── room_participants ────────────────────────────────────────────────────
+export const roomParticipants = pgTable(
+  "room_participants",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    roomId: uuid("room_id")
+      .notNull()
+      .references(() => rooms.id, { onDelete: "cascade" }),
+    participantToken: varchar("participant_token", { length: 64 }).notNull(),
+    nickname: varchar("nickname", { length: 40 }).notNull(),
+    isHost: boolean("is_host").default(false).notNull(),
+    isReady: boolean("is_ready").default(false).notNull(),
+    isDoneVoting: boolean("is_done_voting").default(false).notNull(),
+    // Claim-later hook: an anonymous seat can be attached to an account later.
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    joinedAt: timestamp("joined_at").defaultNow().notNull(),
+    lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+  },
+  (t) => [index("idx_room_participants_room").on(t.roomId)],
+);
+
+// ── room_movies ──────────────────────────────────────────────────────────
+export const roomMovies = pgTable(
+  "room_movies",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    roomId: uuid("room_id")
+      .notNull()
+      .references(() => rooms.id, { onDelete: "cascade" }),
+    movieId: uuid("movie_id")
+      .notNull()
+      .references(() => movies.id, { onDelete: "cascade" }),
+    voteCount: integer("vote_count").default(0).notNull(),
+  },
+  (t) => [uniqueIndex("uq_room_movies_room_movie").on(t.roomId, t.movieId)],
+);
+
+// ── room_votes ───────────────────────────────────────────────────────────
+export const roomVotes = pgTable(
+  "room_votes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    roomId: uuid("room_id")
+      .notNull()
+      .references(() => rooms.id, { onDelete: "cascade" }),
+    participantId: uuid("participant_id")
+      .notNull()
+      .references(() => roomParticipants.id, { onDelete: "cascade" }),
+    movieId: uuid("movie_id")
+      .notNull()
+      .references(() => movies.id, { onDelete: "cascade" }),
+    vote: varchar("vote", { length: 5 }).notNull(),
+    votedAt: timestamp("voted_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("uq_room_votes_room_participant_movie").on(
+      t.roomId,
+      t.participantId,
+      t.movieId,
+    ),
+    index("idx_room_votes_room").on(t.roomId, t.movieId),
+  ],
+);
+
 // ── relations ────────────────────────────────────────────────────────────
 export const usersRelations = relations(users, ({ many }) => ({
   watchListEntries: many(watchListEntries),
@@ -269,6 +357,39 @@ export const sessionMembersRelations = relations(sessionMembers, ({ one }) => ({
   user: one(users, { fields: [sessionMembers.userId], references: [users.id] }),
 }));
 
+export const roomsRelations = relations(rooms, ({ one, many }) => ({
+  winnerMovie: one(movies, {
+    fields: [rooms.winnerMovieId],
+    references: [movies.id],
+  }),
+  participants: many(roomParticipants),
+  movies: many(roomMovies),
+  votes: many(roomVotes),
+}));
+
+export const roomParticipantsRelations = relations(
+  roomParticipants,
+  ({ one }) => ({
+    room: one(rooms, {
+      fields: [roomParticipants.roomId],
+      references: [rooms.id],
+    }),
+  }),
+);
+
+export const roomMoviesRelations = relations(roomMovies, ({ one }) => ({
+  room: one(rooms, { fields: [roomMovies.roomId], references: [rooms.id] }),
+  movie: one(movies, { fields: [roomMovies.movieId], references: [movies.id] }),
+}));
+
+export const roomVotesRelations = relations(roomVotes, ({ one }) => ({
+  room: one(rooms, { fields: [roomVotes.roomId], references: [rooms.id] }),
+  participant: one(roomParticipants, {
+    fields: [roomVotes.participantId],
+    references: [roomParticipants.id],
+  }),
+}));
+
 // ── inferred types ───────────────────────────────────────────────────────
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -282,3 +403,7 @@ export type DecisionSession = typeof decisionSessions.$inferSelect;
 export type SessionMovie = typeof sessionMovies.$inferSelect;
 export type SessionVote = typeof sessionVotes.$inferSelect;
 export type SessionMember = typeof sessionMembers.$inferSelect;
+export type Room = typeof rooms.$inferSelect;
+export type RoomParticipant = typeof roomParticipants.$inferSelect;
+export type RoomMovie = typeof roomMovies.$inferSelect;
+export type RoomVote = typeof roomVotes.$inferSelect;

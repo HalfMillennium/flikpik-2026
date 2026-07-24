@@ -64,9 +64,14 @@ export function GuestWatchlist() {
         <h1 className="type-display">
           {tab === "watched" ? "Watched" : "Watch List"}
         </h1>
-        <ButtonLink href="/movies/search" size="sm">
-          + Add movies
-        </ButtonLink>
+        <div className="flex gap-2">
+          <ButtonLink href="/rooms/new" size="sm" variant="secondary">
+            🎬 Movie night
+          </ButtonLink>
+          <ButtonLink href="/movies/search" size="sm">
+            + Add movies
+          </ButtonLink>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">

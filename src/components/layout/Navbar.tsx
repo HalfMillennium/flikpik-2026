@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 const authedLinks = [
   { href: "/watchlist", label: "Watch List" },
   { href: "/groups", label: "Groups" },
+  { href: "/rooms/new", label: "Movie night" },
 ];
 
 export function Navbar() {
@@ -44,6 +45,7 @@ export function Navbar() {
             ) : (
               <>
                 <NavLink href="/watchlist">Watch List</NavLink>
+                <NavLink href="/rooms/new">Movie night</NavLink>
                 <NavLink href="/login">Log in</NavLink>
                 <ButtonLink href="/signup" size="sm" className="ml-2">
                   Sign up

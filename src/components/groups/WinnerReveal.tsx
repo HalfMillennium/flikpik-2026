@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import Image from "next/image";
 import confetti from "canvas-confetti";
 import { posterUrl } from "@/lib/images";
@@ -10,10 +10,16 @@ export function WinnerReveal({
   title,
   posterPath,
   groupId,
+  eyebrow = "Your group picked",
+  actions,
 }: {
   title: string;
   posterPath: string | null;
-  groupId: string;
+  /** When provided, renders the default group buttons. */
+  groupId?: string;
+  eyebrow?: string;
+  /** Custom footer actions (overrides the default group buttons). */
+  actions?: ReactNode;
 }) {
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -53,7 +59,7 @@ export function WinnerReveal({
         aria-hidden
       />
       <p className="relative mb-1 text-sm font-semibold uppercase tracking-[0.2em] text-[var(--color-red)]">
-        Your group picked
+        {eyebrow}
       </p>
       <div className="pop-in relative my-4 aspect-[2/3] w-52 overflow-hidden rounded-2xl shadow-[var(--shadow-raised)]">
         <Image
@@ -66,12 +72,16 @@ export function WinnerReveal({
       </div>
       <h1 className="type-display relative max-w-md">{title}!</h1>
       <div className="relative mt-8 flex flex-wrap items-center justify-center gap-3">
-        <ButtonLink href={`/groups/${groupId}`} variant="primary">
-          Back to group
-        </ButtonLink>
-        <ButtonLink href="/watchlist?tab=watched" variant="secondary">
-          Watch it now
-        </ButtonLink>
+        {actions ?? (
+          <>
+            <ButtonLink href={`/groups/${groupId}`} variant="primary">
+              Back to group
+            </ButtonLink>
+            <ButtonLink href="/watchlist?tab=watched" variant="secondary">
+              Watch it now
+            </ButtonLink>
+          </>
+        )}
       </div>
     </div>
   );

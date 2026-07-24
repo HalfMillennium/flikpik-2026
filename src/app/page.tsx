@@ -101,6 +101,16 @@ export default async function LandingPage() {
             See how it works
           </ButtonLink>
         </div>
+        <p className="mt-4 text-sm text-[var(--color-ink-soft)]">
+          Just want to pick a movie tonight?{" "}
+          <Link
+            href="/rooms/new"
+            className="font-semibold text-[var(--color-red)] underline underline-offset-4"
+          >
+            Start a movie night
+          </Link>{" "}
+          — no sign-up, share a code, everyone swipes.
+        </p>
         </section>
       </div>
 

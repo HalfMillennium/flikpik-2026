@@ -20,6 +20,27 @@ features (groups, movie-night sessions, and shared reviews) prompt a free
 sign-up. Middleware gates the account-only routes; the watch list and search
 render for everyone.
 
+## Anonymous rooms (no account on either side)
+
+You don't need an account to *run* a movie night either. **"Start a movie night"**
+(`/rooms/new`, or the nav) spins up an ephemeral room: you get a short join code,
+share it, and everyone swipes — the first movie to a majority wins. Identity is
+scoped to the room, not the world:
+
+- **Join code** — short, human-transcribable, unique among *live* rooms (reuses the
+  no-ambiguous-glyph `generateInviteCode`).
+- **Host token** — 128-bit, minted at creation, stored in the browser. Holding it
+  *is* host authority (no account). A `#host=…` link lets a host recover control.
+- **Participant token** — issued on join, stored client-side, so refresh-and-reconnect
+  rehydrates the same seat.
+
+Room state is ephemeral rows in Postgres with a TTL (`rooms`, `room_participants`,
+`room_movies`, `room_votes`) — nothing durable, nothing to GDPR-delete. Realtime uses
+the same SSE-poll pattern as account sessions. Mitigations are behavioral: per-IP join
+rate-limit, room lock on start, aggressive expiry, a room-size cap, and host kick. The
+pool is host-curated (search + add in-room) and participants may contribute their local
+list. See `src/lib/rooms.ts` and `src/app/rooms/`.
+
 ## Stack
 
 | Layer | Tech |

@@ -73,5 +73,45 @@ export const voteSchema = z.object({
   vote: z.enum(["yay", "nay"]),
 });
 
+// ── anonymous rooms ────────────────────────────────────────────────────────
+const nickname = z.string().trim().min(1, "Enter a nickname").max(40);
+const tmdbIds = z.array(z.number().int().positive()).max(60).optional();
+const roomToken = z.string().min(10).max(200);
+
+export const createRoomSchema = z.object({
+  nickname,
+  tmdbIds,
+});
+
+export const joinRoomSchema = z.object({
+  nickname,
+  tmdbIds,
+});
+
+export const roomContributeSchema = z.object({
+  participantToken: roomToken,
+  tmdbIds: z.array(z.number().int().positive()).min(1).max(60),
+});
+
+export const roomReadySchema = z.object({
+  participantToken: roomToken,
+});
+
+export const roomStartSchema = z.object({
+  hostToken: roomToken,
+  mpaaFilters: z.array(z.enum(MPAA_RATINGS)).min(1),
+});
+
+export const roomVoteSchema = z.object({
+  participantToken: roomToken,
+  movieId: z.string().uuid(),
+  vote: z.enum(["yay", "nay"]),
+});
+
+export const roomKickSchema = z.object({
+  hostToken: roomToken,
+  participantId: z.string().uuid(),
+});
+
 export type SignupInput = z.infer<typeof signupSchema>;
 export type ReviewInput = z.infer<typeof reviewSchema>;
