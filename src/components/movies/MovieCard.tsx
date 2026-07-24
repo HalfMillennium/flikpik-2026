@@ -37,21 +37,22 @@ export function MovieCard({ movie }: { movie: MovieCardData }) {
           </span>
         )}
 
-        {rating && Number(rating) > 0 && (
-          <span className="absolute bottom-2 left-2 flex items-center gap-1 text-xs font-bold text-white">
-            <svg width="13" height="13" viewBox="0 0 20 20" aria-hidden>
-              <path
-                d="M10 1.5l2.6 5.27 5.82.85-4.21 4.1.99 5.79L10 14.77l-5.2 2.73.99-5.79-4.21-4.1 5.82-.85L10 1.5z"
-                fill="var(--color-red)"
-              />
-            </svg>
-            {Number(rating).toFixed(1)}
-          </span>
-        )}
-
-        <h3 className="absolute inset-x-0 bottom-0 line-clamp-2 px-2.5 pb-2.5 pt-6 text-sm font-semibold leading-tight text-white">
-          {movie.title}
-        </h3>
+        <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 px-2.5 pb-2.5 pt-6">
+          {rating && Number(rating) > 0 && (
+            <span className="flex items-center gap-1 text-xs font-bold text-white">
+              <svg width="13" height="13" viewBox="0 0 20 20" aria-hidden>
+                <path
+                  d="M10 1.5l2.6 5.27 5.82.85-4.21 4.1.99 5.79L10 14.77l-5.2 2.73.99-5.79-4.21-4.1 5.82-.85L10 1.5z"
+                  fill="var(--color-red)"
+                />
+              </svg>
+              {Number(rating).toFixed(1)}
+            </span>
+          )}
+          <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-white">
+            {movie.title}
+          </h3>
+        </div>
       </div>
     </Link>
   );
