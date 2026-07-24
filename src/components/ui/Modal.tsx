@@ -26,11 +26,17 @@ export function Modal({
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Callers typically pass an inline close handler whose identity changes
+  // every render; route it through a ref so the effect below only re-runs
+  // when `open` changes — otherwise it would steal focus on every keystroke.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
       if (e.key === "Tab") trapFocus(e, panelRef.current);
     };
     document.addEventListener("keydown", onKey);
@@ -38,17 +44,19 @@ export function Modal({
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    // focus first focusable
-    const first = panelRef.current?.querySelector<HTMLElement>(
-      "input, button, textarea, select, [tabindex]",
-    );
+    // focus the first form control; fall back to any focusable (which
+    // would be the header close button)
+    const panel = panelRef.current;
+    const first =
+      panel?.querySelector<HTMLElement>("input, textarea, select") ??
+      panel?.querySelector<HTMLElement>("button, [tabindex]");
     first?.focus();
 
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
