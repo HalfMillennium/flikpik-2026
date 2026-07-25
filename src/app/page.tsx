@@ -27,6 +27,12 @@ export default async function LandingPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Logo />
           <div className="flex items-center gap-2">
+            <Link
+              href="/blog"
+              className="rounded-full px-4 py-2 text-[15px] font-medium hover:bg-[var(--color-paper-tint)]"
+            >
+              Blog
+            </Link>
             {signedIn ? (
               <ButtonLink href="/watchlist" size="sm">
                 Open app

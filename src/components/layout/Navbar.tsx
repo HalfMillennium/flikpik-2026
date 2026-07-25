@@ -14,6 +14,7 @@ const authedLinks = [
   { href: "/watchlist", label: "Watch List" },
   { href: "/groups", label: "Groups" },
   { href: "/rooms/new", label: "Movie night" },
+  { href: "/blog", label: "Blog" },
 ];
 
 export function Navbar() {
@@ -46,6 +47,7 @@ export function Navbar() {
               <>
                 <NavLink href="/watchlist">Watch List</NavLink>
                 <NavLink href="/rooms/new">Movie night</NavLink>
+                <NavLink href="/blog">Blog</NavLink>
                 <NavLink href="/login">Log in</NavLink>
                 <ButtonLink href="/signup" size="sm" className="ml-2">
                   Sign up

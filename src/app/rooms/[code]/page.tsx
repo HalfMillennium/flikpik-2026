@@ -1,7 +1,11 @@
 import { Logo } from "@/components/ui/Logo";
 import { RoomView } from "./RoomView";
 
-export const metadata = { title: "Movie night" };
+export const metadata = {
+  title: "Movie night",
+  // Rooms are ephemeral capability URLs — never index them.
+  robots: { index: false, follow: false },
+};
 
 export default async function RoomPage({
   params,

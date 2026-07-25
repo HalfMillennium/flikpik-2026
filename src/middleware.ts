@@ -7,7 +7,16 @@ const PUBLIC_PATHS = new Set(["/", "/login", "/signup"]);
 
 // Guest-accessible app pages (local-only experience, no account needed).
 // `/rooms` is the anonymous decision-session flow — fully account-free.
-const GUEST_PREFIXES = ["/watchlist", "/movies/search", "/movies/tmdb", "/rooms"];
+// `/blog`, `/lists`, `/picker` are the public content/SEO surface.
+const GUEST_PREFIXES = [
+  "/watchlist",
+  "/movies/search",
+  "/movies/tmdb",
+  "/rooms",
+  "/blog",
+  "/lists",
+  "/picker",
+];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -35,6 +44,6 @@ export const config = {
   // /api here — otherwise the middleware would 307-redirect API calls to
   // /login and break guest search.
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|poster-placeholder.svg|icon.svg|.*\\.png$|.*\\.svg$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|feed.xml|.*\\.png$|.*\\.svg$|.*\\.xml$|.*\\.txt$).*)",
   ],
 };

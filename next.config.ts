@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   },
   // bcryptjs is pure-JS; keep it external so it isn't bundled oddly.
   serverExternalPackages: ["bcryptjs"],
+  // Ensure the editorial content dir ships with server functions that read it
+  // at runtime (sitemap/feed revalidation, list pages).
+  outputFileTracingIncludes: {
+    "/**": ["./content/**/*"],
+  },
 };
 
 export default nextConfig;

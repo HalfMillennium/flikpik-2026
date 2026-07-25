@@ -10,6 +10,8 @@ const authedItems = [
   { href: "/watchlist", label: "Watch List" },
   { href: "/watchlist?tab=watched", label: "Watched List" },
   { href: "/groups", label: "Groups" },
+  { href: "/rooms/new", label: "Movie night" },
+  { href: "/blog", label: "Blog" },
   { href: "/profile", label: "Profile" },
 ];
 
@@ -83,6 +85,20 @@ export function MobileDrawer({
                 className="rounded-lg px-3 py-3 text-[17px] font-medium hover:bg-[var(--color-paper-tint)]"
               >
                 Search movies
+              </Link>
+              <Link
+                href="/rooms/new"
+                onClick={onClose}
+                className="rounded-lg px-3 py-3 text-[17px] font-medium hover:bg-[var(--color-paper-tint)]"
+              >
+                Movie night
+              </Link>
+              <Link
+                href="/blog"
+                onClick={onClose}
+                className="rounded-lg px-3 py-3 text-[17px] font-medium hover:bg-[var(--color-paper-tint)]"
+              >
+                Blog
               </Link>
               <div className="my-2 h-px bg-[var(--color-line)]" />
               <Link
