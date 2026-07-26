@@ -285,6 +285,74 @@ export const roomVotes = pgTable(
   ],
 );
 
+// ══ List packs ═══════════════════════════════════════════════════════════
+// Pre-built, launchable movie sets. Dynamic packs (trending, in-theaters,
+// search-trends) are refreshed by an external cron. Items snapshot the movie
+// fields so rendering is a pure DB read — it never re-hits TMDB.
+
+export const listPacks = pgTable(
+  "list_packs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: varchar("slug", { length: 80 }).notNull().unique(),
+    title: varchar("title", { length: 160 }).notNull(),
+    description: text("description"),
+    // trending | now_playing | popular | search_trends | seasonal | mood
+    kind: varchar("kind", { length: 24 }).notNull(),
+    // weekly | daily | manual
+    refreshStrategy: varchar("refresh_strategy", { length: 16 })
+      .default("weekly")
+      .notNull(),
+    sourceConfig: jsonb("source_config").$type<Record<string, unknown>>().default({}),
+    isActive: boolean("is_active").default(true).notNull(),
+    sortOrder: integer("sort_order").default(0).notNull(),
+    version: integer("version").default(0).notNull(),
+    newCount: integer("new_count").default(0).notNull(),
+    // Last refresh had to use the fallback path (e.g. Google Trends 403'd).
+    degraded: boolean("degraded").default(false).notNull(),
+    refreshedAt: timestamp("refreshed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("idx_list_packs_slug").on(t.slug)],
+);
+
+export const listPackItems = pgTable(
+  "list_pack_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    packId: uuid("pack_id")
+      .notNull()
+      .references(() => listPacks.id, { onDelete: "cascade" }),
+    tmdbId: integer("tmdb_id").notNull(),
+    position: integer("position").default(0).notNull(),
+    pinned: boolean("pinned").default(false).notNull(),
+    // snapshot — so the grid renders without a TMDB call
+    title: varchar("title", { length: 500 }).notNull(),
+    posterPath: varchar("poster_path", { length: 500 }),
+    releaseDate: date("release_date"),
+    addedAt: timestamp("added_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("uq_list_pack_items_pack_tmdb").on(t.packId, t.tmdbId),
+    index("idx_list_pack_items_pack").on(t.packId, t.position),
+  ],
+);
+
+export const listPackHistory = pgTable(
+  "list_pack_history",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    packId: uuid("pack_id")
+      .notNull()
+      .references(() => listPacks.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    itemsJson: jsonb("items_json").$type<number[]>().default([]),
+    refreshedAt: timestamp("refreshed_at").defaultNow().notNull(),
+  },
+  (t) => [index("idx_list_pack_history_pack").on(t.packId)],
+);
+
 // ── relations ────────────────────────────────────────────────────────────
 export const usersRelations = relations(users, ({ many }) => ({
   watchListEntries: many(watchListEntries),
@@ -390,6 +458,25 @@ export const roomVotesRelations = relations(roomVotes, ({ one }) => ({
   }),
 }));
 
+export const listPacksRelations = relations(listPacks, ({ many }) => ({
+  items: many(listPackItems),
+  history: many(listPackHistory),
+}));
+
+export const listPackItemsRelations = relations(listPackItems, ({ one }) => ({
+  pack: one(listPacks, {
+    fields: [listPackItems.packId],
+    references: [listPacks.id],
+  }),
+}));
+
+export const listPackHistoryRelations = relations(listPackHistory, ({ one }) => ({
+  pack: one(listPacks, {
+    fields: [listPackHistory.packId],
+    references: [listPacks.id],
+  }),
+}));
+
 // ── inferred types ───────────────────────────────────────────────────────
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -407,3 +494,6 @@ export type Room = typeof rooms.$inferSelect;
 export type RoomParticipant = typeof roomParticipants.$inferSelect;
 export type RoomMovie = typeof roomMovies.$inferSelect;
 export type RoomVote = typeof roomVotes.$inferSelect;
+export type ListPack = typeof listPacks.$inferSelect;
+export type ListPackItem = typeof listPackItems.$inferSelect;
+export type ListPackHistory = typeof listPackHistory.$inferSelect;

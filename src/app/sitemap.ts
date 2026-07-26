@@ -1,12 +1,18 @@
 import type { MetadataRoute } from "next";
 import { getAllPosts, getAllLists } from "@/lib/content";
+import { getActivePacks, type PackSummary } from "@/lib/packs";
 import { SITE_URL } from "@/lib/site";
 
 // Keep the sitemap fresh even if content later moves to a DB.
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [posts, lists] = await Promise.all([getAllPosts(), getAllLists()]);
+  const [posts, lists, packs] = await Promise.all([
+    getAllPosts(),
+    getAllLists(),
+    // Best-effort — a DB hiccup shouldn't break the sitemap.
+    getActivePacks().catch(() => [] as PackSummary[]),
+  ]);
   const newest = [...posts, ...lists]
     .map((e) => e.updatedAt)
     .sort()
@@ -35,5 +41,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...postRoutes, ...listRoutes];
+  const packRoutes: MetadataRoute.Sitemap = packs.map((p) => ({
+    url: `${SITE_URL}/lists/${p.slug}`,
+    lastModified: p.refreshedAt ?? undefined,
+    changeFrequency: "weekly",
+    priority: 0.6,
+  }));
+
+  return [...staticRoutes, ...postRoutes, ...listRoutes, ...packRoutes];
 }

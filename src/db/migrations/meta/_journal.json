@@ -15,6 +15,13 @@
       "when": 1784917394710,
       "tag": "0001_classy_vision",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785040935782,
+      "tag": "0002_overconfident_professor_monster",
+      "breakpoints": true
     }
   ]
 }

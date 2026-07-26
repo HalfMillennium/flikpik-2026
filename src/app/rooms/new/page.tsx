@@ -1,8 +1,12 @@
 import { Logo } from "@/components/ui/Logo";
 import { ButtonLink } from "@/components/ui/Button";
 import { RoomEntry } from "@/components/rooms/RoomEntry";
+import { PackTiles } from "@/components/packs/PackTiles";
 
 export const metadata = { title: "Start a movie night" };
+
+// Pack tiles read from the DB; keep the page fresh with ISR.
+export const revalidate = 3600;
 
 export default function NewRoomPage() {
   return (
@@ -27,6 +31,7 @@ export default function NewRoomPage() {
         <div className="mt-8 flex justify-center">
           <RoomEntry />
         </div>
+        <PackTiles />
       </main>
     </div>
   );

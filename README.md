@@ -20,6 +20,31 @@ features (groups, movie-night sessions, and shared reviews) prompt a free
 sign-up. Middleware gates the account-only routes; the watch list and search
 render for everyone.
 
+## List packs — trending + pre-built movie sets
+
+Beyond the evergreen file-based lists, flikpik has **DB-backed "packs"** that refresh
+themselves and jump straight into a session:
+
+- **Sources** — TMDB is the backbone (`/trending/movie/week`, `/movie/now_playing`,
+  `/movie/popular`, all free). A **Google Trends** signal ("Trending in Search") comes
+  from Google's free public **RSS feed**, parsed in `src/lib/google-trends.ts` — *not*
+  the Trends API (alpha/allowlisted). Google blocks datacenter IPs intermittently, so
+  it's **best-effort**: any failure returns `{ degraded: true }` and the pack falls back
+  to TMDB trending, never empty.
+- **Model** — `list_packs` / `list_pack_items` / `list_pack_history`. Items snapshot
+  `title`/`poster`/`release`, so pages render straight from Postgres (no live TMDB call).
+  Packs are declared in code (`PACK_REGISTRY` in `src/lib/packs.ts`) and populated by the
+  refresh job.
+- **Refresh** — Neon `pg_cron` can't make HTTP calls, so the scheduler is external:
+  **Vercel Cron** (`vercel.json`) hits `POST /api/cron/refresh-packs` weekly (guarded by
+  `CRON_SECRET`), which fetches and upserts into Neon. A **GitHub Actions** workflow
+  (`.github/workflows/refresh-packs.yml`) is the portable fallback. First run / local:
+  start the app, then `npm run packs:refresh`.
+- **Surfaces** — packs appear on `/lists` (with a "Refreshed weekly · N new" badge), each
+  at `/lists/[slug]`, and as one-tap **launch tiles** on `/rooms/new` that seed a room
+  with the pack. Launch snapshots the movies into the room, so a later refresh never
+  mutates a session already in progress.
+
 ## Anonymous rooms (no account on either side)
 
 You don't need an account to *run* a movie night either. **"Start a movie night"**

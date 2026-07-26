@@ -31,6 +31,7 @@ export type TmdbSearchResult = {
   backdrop_path: string | null;
   release_date: string;
   vote_average: number;
+  vote_count?: number;
 };
 
 export type TmdbSearchResponse = {
@@ -88,6 +89,27 @@ export async function getPopular(page = 1): Promise<TmdbSearchResponse> {
     { headers: headers(), next: { revalidate: 3600 } },
   );
   if (!res.ok) throw new Error(`TMDB popular failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getTrending(
+  window: "day" | "week" = "week",
+  page = 1,
+): Promise<TmdbSearchResponse> {
+  const res = await fetch(
+    `${TMDB_BASE}/trending/movie/${window}?page=${page}`,
+    { headers: headers(), next: { revalidate: 3600 } },
+  );
+  if (!res.ok) throw new Error(`TMDB trending failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getNowPlaying(page = 1): Promise<TmdbSearchResponse> {
+  const res = await fetch(
+    `${TMDB_BASE}/movie/now_playing?page=${page}&region=US`,
+    { headers: headers(), next: { revalidate: 3600 } },
+  );
+  if (!res.ok) throw new Error(`TMDB now_playing failed: ${res.status}`);
   return res.json();
 }
 

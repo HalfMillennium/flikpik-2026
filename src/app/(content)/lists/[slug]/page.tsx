@@ -4,15 +4,67 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getAllLists, getList } from "@/lib/content";
 import { resolveListMovies } from "@/lib/list-movies";
+import { getPackBySlug } from "@/lib/packs";
 import { SITE_URL } from "@/lib/site";
 import { Markdown } from "@/components/blog/Markdown";
 import { ImportListCTA } from "@/components/blog/ImportListCTA";
 import { posterUrl } from "@/lib/images";
 import { yearOf } from "@/lib/utils";
 
-// Poster data is fetched from TMDB per request; cache for a day.
-export const revalidate = 86400;
+export const revalidate = 3600;
 
+type ResolvedMovie = {
+  tmdbId: number;
+  title: string;
+  posterPath: string | null;
+  releaseDate: string | null;
+};
+
+type Resolved = {
+  slug: string;
+  title: string;
+  description: string;
+  intro?: string;
+  method?: string;
+  freshness?: string;
+  movies: ResolvedMovie[];
+};
+
+/** Resolve a slug to either an editorial file-list or a dynamic DB pack. */
+async function resolve(slug: string): Promise<Resolved | null> {
+  const list = await getList(slug);
+  if (list) {
+    return {
+      slug: list.slug,
+      title: list.title,
+      description: list.description,
+      intro: list.intro,
+      method: list.method,
+      movies: await resolveListMovies(list.movies),
+    };
+  }
+
+  const pack = await getPackBySlug(slug).catch(() => null);
+  if (pack) {
+    const cadence = pack.refreshStrategy === "daily" ? "daily" : "weekly";
+    const freshness =
+      pack.degraded || pack.newCount <= 0
+        ? `Refreshed ${cadence}`
+        : `Refreshed ${cadence} · ${pack.newCount} new this week`;
+    return {
+      slug: pack.slug,
+      title: pack.title,
+      description: pack.description ?? "",
+      freshness,
+      // Items are snapshotted — no TMDB call needed.
+      movies: pack.items,
+    };
+  }
+  return null;
+}
+
+// File-list slugs prerender; pack slugs render on-demand (ISR) so they always
+// reflect the latest refresh.
 export async function generateStaticParams() {
   return (await getAllLists()).map((l) => ({ slug: l.slug }));
 }
@@ -23,19 +75,14 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const list = await getList(slug);
-  if (!list) return {};
-  const url = `${SITE_URL}/lists/${list.slug}`;
+  const r = await resolve(slug);
+  if (!r) return {};
+  const url = `${SITE_URL}/lists/${r.slug}`;
   return {
-    title: list.title,
-    description: list.description,
+    title: r.title,
+    description: r.description,
     alternates: { canonical: url },
-    openGraph: {
-      type: "website",
-      title: list.title,
-      description: list.description,
-      url,
-    },
+    openGraph: { type: "website", title: r.title, description: r.description, url },
   };
 }
 
@@ -45,19 +92,18 @@ export default async function ListPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const list = await getList(slug);
-  if (!list) notFound();
+  const r = await resolve(slug);
+  if (!r) notFound();
 
-  const movies = await resolveListMovies(list.movies);
-  const tmdbIds = list.movies.map((m) => m.tmdbId);
+  const tmdbIds = r.movies.map((m) => m.tmdbId);
 
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: list.title,
-    description: list.description,
-    numberOfItems: movies.length,
-    itemListElement: movies.map((m, i) => ({
+    name: r.title,
+    description: r.description,
+    numberOfItems: r.movies.length,
+    itemListElement: r.movies.map((m, i) => ({
       "@type": "ListItem",
       position: i + 1,
       item: {
@@ -84,22 +130,36 @@ export default async function ListPage({
       >
         ← All lists
       </Link>
-      <h1 className="type-display mt-4">{list.title}</h1>
+      <h1 className="type-display mt-4">{r.title}</h1>
 
-      {list.intro && (
-        <div className="mt-4 max-w-2xl">
-          <Markdown>{list.intro}</Markdown>
-        </div>
+      {r.freshness && (
+        <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-red)]">
+          <span
+            className="pulse-dot inline-block h-2 w-2 rounded-full"
+            style={{ background: "var(--color-red)" }}
+          />
+          {r.freshness}
+        </p>
       )}
 
-      {/* top CTA */}
+      {r.intro ? (
+        <div className="mt-4 max-w-2xl">
+          <Markdown>{r.intro}</Markdown>
+        </div>
+      ) : (
+        r.description && (
+          <p className="mt-3 max-w-2xl text-lg text-[var(--color-ink-soft)]">
+            {r.description}
+          </p>
+        )
+      )}
+
       <div className="mt-8">
         <ImportListCTA tmdbIds={tmdbIds} count={tmdbIds.length} />
       </div>
 
-      {/* poster grid */}
       <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-5">
-        {movies.map((m) => (
+        {r.movies.map((m) => (
           <Link
             key={m.tmdbId}
             href={`/movies/tmdb/${m.tmdbId}`}
@@ -127,16 +187,15 @@ export default async function ListPage({
         ))}
       </div>
 
-      {list.method && (
+      {r.method && (
         <div className="mt-10 rounded-2xl border border-[var(--color-line)] bg-[var(--color-paper-raised)] p-5">
           <h2 className="mb-1 text-sm font-semibold uppercase tracking-widest text-[var(--color-ink-soft)]">
             How we built this list
           </h2>
-          <p className="text-[var(--color-ink-soft)]">{list.method}</p>
+          <p className="text-[var(--color-ink-soft)]">{r.method}</p>
         </div>
       )}
 
-      {/* bottom CTA */}
       <div className="mt-8">
         <ImportListCTA tmdbIds={tmdbIds} count={tmdbIds.length} />
       </div>
