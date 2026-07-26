@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getAllLists } from "@/lib/content";
-import { getActivePacks, type PackSummary } from "@/lib/packs";
+import { freshness, getActivePacks, type PackSummary } from "@/lib/packs";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -13,12 +13,6 @@ export const metadata: Metadata = {
 
 // Auto-updating packs come from the DB; keep the index fresh with ISR.
 export const revalidate = 3600;
-
-function freshness(p: PackSummary): string {
-  const cadence = p.refreshStrategy === "daily" ? "daily" : "weekly";
-  if (p.degraded || p.newCount <= 0) return `Refreshed ${cadence}`;
-  return `Refreshed ${cadence} · ${p.newCount} new`;
-}
 
 export default async function ListsIndex() {
   const [lists, packs] = await Promise.all([

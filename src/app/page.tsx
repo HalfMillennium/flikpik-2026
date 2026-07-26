@@ -5,6 +5,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Footer } from "@/components/layout/Footer";
 import { GuestEntryButton } from "@/components/layout/GuestEntryButton";
 import { PixelField } from "@/components/ui/PixelField";
+import { PackShowcase } from "@/components/packs/PackShowcase";
 import { posterUrl } from "@/lib/images";
 
 // Real TMDB poster paths for the landing-page card fan.
@@ -27,6 +28,12 @@ export default async function LandingPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Logo />
           <div className="flex items-center gap-2">
+            <Link
+              href="/lists"
+              className="rounded-full px-4 py-2 text-[15px] font-medium hover:bg-[var(--color-paper-tint)]"
+            >
+              Lists
+            </Link>
             <Link
               href="/blog"
               className="rounded-full px-4 py-2 text-[15px] font-medium hover:bg-[var(--color-paper-tint)]"
@@ -165,6 +172,9 @@ export default async function LandingPage() {
           ))}
         </div>
       </section>
+
+      {/* Fresh packs showcase */}
+      <PackShowcase />
 
       {/* Feature section */}
       <section className="mx-auto max-w-5xl px-6 py-16">

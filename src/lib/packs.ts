@@ -1,5 +1,6 @@
 import "server-only";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
+import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { listPacks, listPackItems, listPackHistory } from "@/db/schema";
 import {
@@ -297,6 +298,50 @@ export async function getActivePacks(): Promise<PackSummary[]> {
       refreshedAt: r.refreshedAt ? r.refreshedAt.toISOString() : null,
     }));
 }
+
+/** Human-readable refresh cadence line, shared by /lists and the homepage. */
+export function freshness(p: Pick<PackSummary, "refreshStrategy" | "degraded" | "newCount">): string {
+  const cadence = p.refreshStrategy === "daily" ? "daily" : "weekly";
+  if (p.degraded || p.newCount <= 0) return `Refreshed ${cadence}`;
+  return `Refreshed ${cadence} · ${p.newCount} new`;
+}
+
+export type PackPreview = PackSummary & { posterPaths: string[] };
+
+/**
+ * Active packs plus their first few poster paths — for the landing-page
+ * showcase. Posters come from the snapshot columns, so no TMDB call. Cached
+ * because the homepage is dynamic (auth) and packs only change on refresh.
+ */
+export const getPackPreviews = unstable_cache(
+  async (postersPerPack = 5): Promise<PackPreview[]> => {
+    const packs = await getActivePacks();
+    if (packs.length === 0) return [];
+    const posterRows = await db
+      .select({
+        slug: listPacks.slug,
+        posterPath: listPackItems.posterPath,
+      })
+      .from(listPackItems)
+      .innerJoin(listPacks, eq(listPackItems.packId, listPacks.id))
+      .where(
+        and(
+          inArray(listPacks.slug, packs.map((p) => p.slug)),
+          isNotNull(listPackItems.posterPath),
+        ),
+      )
+      .orderBy(asc(listPackItems.position));
+    const bySlug = new Map<string, string[]>();
+    for (const r of posterRows) {
+      const paths = bySlug.get(r.slug) ?? [];
+      if (paths.length < postersPerPack && r.posterPath) paths.push(r.posterPath);
+      bySlug.set(r.slug, paths);
+    }
+    return packs.map((p) => ({ ...p, posterPaths: bySlug.get(p.slug) ?? [] }));
+  },
+  ["pack-previews"],
+  { revalidate: 3600 },
+);
 
 export type PackDetail = {
   slug: string;

@@ -7,6 +7,8 @@ const columns = [
     links: [
       { label: "Watch List", href: "/watchlist" },
       { label: "Groups", href: "/groups" },
+      { label: "Movie night", href: "/rooms/new" },
+      { label: "Lists", href: "/lists" },
       { label: "Search", href: "/movies/search" },
     ],
   },
