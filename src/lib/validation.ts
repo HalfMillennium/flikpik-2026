@@ -78,13 +78,15 @@ const nickname = z.string().trim().min(1, "Enter a nickname").max(40);
 const tmdbIds = z.array(z.number().int().positive()).max(60).optional();
 const roomToken = z.string().min(10).max(200);
 
+// Nickname is optional at the API layer: signed-in users omit it and the
+// route derives it from the session instead.
 export const createRoomSchema = z.object({
-  nickname,
+  nickname: nickname.optional(),
   tmdbIds,
 });
 
 export const joinRoomSchema = z.object({
-  nickname,
+  nickname: nickname.optional(),
   tmdbIds,
 });
 

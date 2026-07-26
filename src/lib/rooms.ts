@@ -128,7 +128,11 @@ async function addMoviesToPool(roomId: string, tmdbIds: number[]) {
 }
 
 // ── create / join / reconnect ────────────────────────────────────────────
-export async function createRoom(nickname: string, tmdbIds: number[] = []) {
+export async function createRoom(
+  nickname: string,
+  tmdbIds: number[] = [],
+  userId?: string,
+) {
   const hostToken = newToken();
 
   let room: Room | undefined;
@@ -158,6 +162,7 @@ export async function createRoom(nickname: string, tmdbIds: number[] = []) {
       participantToken,
       nickname: nickname.slice(0, 40),
       isHost: true,
+      userId: userId ?? null,
     })
     .returning({ id: roomParticipants.id });
 
@@ -168,6 +173,7 @@ export async function createRoom(nickname: string, tmdbIds: number[] = []) {
     hostToken,
     participantId: host.id,
     participantToken,
+    nickname: nickname.slice(0, 40),
   };
 }
 
@@ -175,6 +181,7 @@ export async function joinRoom(
   code: string,
   nickname: string,
   tmdbIds: number[] = [],
+  userId?: string,
 ) {
   const room = await getLiveRoom(code);
   if (!room) return { error: "That room doesn't exist or has expired" as const };
@@ -197,12 +204,17 @@ export async function joinRoom(
       roomId: room.id,
       participantToken,
       nickname: nickname.slice(0, 40),
+      userId: userId ?? null,
     })
     .returning({ id: roomParticipants.id });
 
   if (tmdbIds.length) await addMoviesToPool(room.id, tmdbIds);
 
-  return { participantId: p.id, participantToken };
+  return {
+    participantId: p.id,
+    participantToken,
+    nickname: nickname.slice(0, 40),
+  };
 }
 
 /** Rehydrate a seat on refresh/reconnect. */

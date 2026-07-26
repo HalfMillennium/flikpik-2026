@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import type { RoomState } from "@/lib/rooms";
 import { SwipeCard } from "@/components/movies/SwipeCard";
 import { VotingProgress } from "@/components/groups/VotingProgress";
@@ -178,6 +179,9 @@ function JoinGate({
   onJoined: (c: RoomCreds) => void;
 }) {
   const guest = useGuest();
+  const { data: session } = useSession();
+  const user = session?.user;
+  const accountName = user ? (user.name ?? user.username) : null;
   const [nickname, setNickname] = useState("");
   const [bringList, setBringList] = useState(true);
   const [error, setError] = useState("");
@@ -185,7 +189,7 @@ function JoinGate({
 
   async function join() {
     setError("");
-    if (!nickname.trim()) return setError("Enter a nickname.");
+    if (!accountName && !nickname.trim()) return setError("Enter a nickname.");
     setBusy(true);
     const tmdbIds =
       bringList && guest.list.length
@@ -194,7 +198,10 @@ function JoinGate({
     const res = await fetch(`/api/rooms/${code}/join`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nickname: nickname.trim(), tmdbIds }),
+      body: JSON.stringify({
+        nickname: accountName ? undefined : nickname.trim(),
+        tmdbIds,
+      }),
     });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
@@ -202,7 +209,7 @@ function JoinGate({
     const creds: RoomCreds = {
       participantId: data.participantId,
       participantToken: data.participantToken,
-      nickname: nickname.trim(),
+      nickname: data.nickname ?? accountName ?? nickname.trim(),
     };
     saveRoomCreds(code, creds);
     onJoined(creds);
@@ -215,14 +222,25 @@ function JoinGate({
       </p>
       <h1 className="type-display mt-1 text-center">Join the movie night</h1>
       <div className="mt-8 space-y-4 rounded-2xl border border-[var(--color-line)] bg-[var(--color-paper-raised)] p-6">
-        <Field
-          label="Your nickname"
-          value={nickname}
-          onChange={setNickname}
-          placeholder="e.g. Alex"
-          error={error}
-          maxLength={40}
-        />
+        {accountName ? (
+          <>
+            <p className="text-sm">
+              Joining as <span className="font-semibold">{accountName}</span>.
+            </p>
+            {error && (
+              <p className="text-sm text-[var(--color-red-deep)]">{error}</p>
+            )}
+          </>
+        ) : (
+          <Field
+            label="Your nickname"
+            value={nickname}
+            onChange={setNickname}
+            placeholder="e.g. Alex"
+            error={error}
+            maxLength={40}
+          />
+        )}
         {guest.list.length > 0 && (
           <label className="flex items-center gap-2 text-sm text-[var(--color-ink-soft)]">
             <input

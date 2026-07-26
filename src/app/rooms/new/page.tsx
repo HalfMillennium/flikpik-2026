@@ -1,5 +1,6 @@
 import { Logo } from "@/components/ui/Logo";
 import { ButtonLink } from "@/components/ui/Button";
+import { GuestOnly } from "@/components/ui/GuestOnly";
 import { RoomEntry } from "@/components/rooms/RoomEntry";
 import { PackTiles } from "@/components/packs/PackTiles";
 
@@ -20,9 +21,11 @@ export default function NewRoomPage() {
         </div>
       </header>
       <main className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-6 py-12 text-center">
-        <p className="text-sm font-semibold uppercase tracking-widest text-[var(--color-red)]">
-          No account needed
-        </p>
+        <GuestOnly>
+          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--color-red)]">
+            No account needed
+          </p>
+        </GuestOnly>
         <h1 className="type-hero mt-2">Movie night, right now.</h1>
         <p className="mx-auto mt-4 max-w-sm text-lg text-[var(--color-ink-soft)]">
           Spin up a room, share the code, everyone swipes. The first movie to a

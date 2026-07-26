@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { limitByUserOrIp, badRequest, serverError } from "@/lib/api";
 import { joinRoomSchema } from "@/lib/validation";
 import { joinRoom } from "@/lib/rooms";
@@ -23,11 +24,21 @@ export async function POST(
   const parsed = joinRoomSchema.safeParse(body);
   if (!parsed.success) return badRequest("Validation failed");
 
+  // Signed-in users may omit the nickname; their account name is used and
+  // the seat is linked to their account.
+  const session = await auth();
+  const nickname =
+    parsed.data.nickname ??
+    session?.user?.name ??
+    session?.user?.username;
+  if (!nickname) return badRequest("Enter a nickname");
+
   try {
     const result = await joinRoom(
       code,
-      parsed.data.nickname,
+      nickname,
       parsed.data.tmdbIds ?? [],
+      session?.user?.id,
     );
     if ("error" in result && result.error) return badRequest(result.error);
     return NextResponse.json(result);

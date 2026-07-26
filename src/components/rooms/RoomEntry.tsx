@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Field } from "@/components/ui/Field";
@@ -22,6 +23,9 @@ export function RoomEntry({
   const router = useRouter();
   const toast = useToast();
   const guest = useGuest();
+  const { data: session } = useSession();
+  const user = session?.user;
+  const accountName = user ? (user.name ?? user.username) : null;
 
   const [mode, setMode] = useState<"none" | "host" | "join">("none");
   const [nickname, setNickname] = useState("");
@@ -39,7 +43,7 @@ export function RoomEntry({
 
   async function host() {
     setError("");
-    if (!nickname.trim()) return setError("Enter a nickname.");
+    if (!accountName && !nickname.trim()) return setError("Enter a nickname.");
     setBusy(true);
     const tmdbIds =
       seedList && guest.list.length
@@ -48,7 +52,10 @@ export function RoomEntry({
     const res = await fetch("/api/rooms", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nickname: nickname.trim(), tmdbIds }),
+      body: JSON.stringify({
+        nickname: accountName ? undefined : nickname.trim(),
+        tmdbIds,
+      }),
     });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
@@ -56,7 +63,7 @@ export function RoomEntry({
     saveRoomCreds(data.code, {
       participantId: data.participantId,
       participantToken: data.participantToken,
-      nickname: nickname.trim(),
+      nickname: data.nickname ?? accountName ?? nickname.trim(),
       hostToken: data.hostToken,
     });
     toast("Room created", "success");
@@ -101,17 +108,29 @@ export function RoomEntry({
         }
       >
         <p className="mb-4 text-sm text-[var(--color-ink-soft)]">
-          No account needed. You&apos;ll get a short code to share — everyone
-          swipes, the majority wins.
+          {accountName ? "" : "No account needed. "}You&apos;ll get a short code
+          to share — everyone swipes, the majority wins.
         </p>
-        <Field
-          label="Your nickname"
-          value={nickname}
-          onChange={setNickname}
-          placeholder="e.g. Alex"
-          error={error}
-          maxLength={40}
-        />
+        {accountName ? (
+          <>
+            <p className="text-sm">
+              You&apos;ll host as{" "}
+              <span className="font-semibold">{accountName}</span>.
+            </p>
+            {error && (
+              <p className="mt-2 text-sm text-[var(--color-red-deep)]">{error}</p>
+            )}
+          </>
+        ) : (
+          <Field
+            label="Your nickname"
+            value={nickname}
+            onChange={setNickname}
+            placeholder="e.g. Alex"
+            error={error}
+            maxLength={40}
+          />
+        )}
         {guest.list.length > 0 && (
           <label className="mt-3 flex items-center gap-2 text-sm text-[var(--color-ink-soft)]">
             <input
