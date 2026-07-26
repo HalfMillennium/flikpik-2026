@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Archivo, Inter, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
@@ -55,6 +56,7 @@ export default function RootLayout({
             <ToastProvider>{children}</ToastProvider>
           </GuestProvider>
         </SessionProvider>
+        <Analytics />
       </body>
     </html>
   );
