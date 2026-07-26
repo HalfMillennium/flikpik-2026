@@ -24,7 +24,10 @@ export default async function ListsIndex() {
   const [lists, packs] = await Promise.all([
     getAllLists(),
     // Best-effort — a DB hiccup shouldn't break the page.
-    getActivePacks().catch(() => [] as PackSummary[]),
+    getActivePacks().catch((e) => {
+      console.error("[lists] getActivePacks failed:", e);
+      return [] as PackSummary[];
+    }),
   ]);
 
   return (

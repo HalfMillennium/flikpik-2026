@@ -278,9 +278,12 @@ export async function getActivePacks(): Promise<PackSummary[]> {
       degraded: listPacks.degraded,
       refreshStrategy: listPacks.refreshStrategy,
       refreshedAt: listPacks.refreshedAt,
+      // Raw identifiers on purpose: interpolating drizzle columns here emits
+      // them unqualified, so `id` resolves against the inner table and the
+      // count is always 0.
       itemCount: sql<number>`(
-        select count(*)::int from ${listPackItems}
-        where ${listPackItems.packId} = ${listPacks.id}
+        select count(*)::int from list_pack_items
+        where list_pack_items.pack_id = list_packs.id
       )`.as("item_count"),
     })
     .from(listPacks)

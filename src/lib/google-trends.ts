@@ -11,7 +11,9 @@ import "server-only";
  * fall back. Any failure → `{ terms: [], degraded: true }`.
  */
 
-const TRENDS_RSS = "https://trends.google.com/trends/trendingsearches/daily/rss";
+// The old /trends/trendingsearches/daily/rss path now 404s — Google moved the
+// feed to /trending/rss (same RSS shape, same ht: namespace).
+const TRENDS_RSS = "https://trends.google.com/trending/rss";
 
 export type TrendTerm = { query: string; approxTraffic: string | null };
 export type TrendsResult = { terms: TrendTerm[]; degraded: boolean };
