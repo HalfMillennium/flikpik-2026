@@ -1,7 +1,15 @@
 name: Refresh list packs
 
-# Portable fallback scheduler (use this if you're not on Vercel Cron).
-# Set repo secrets: SITE_URL (e.g. https://flikpik.app) and CRON_SECRET.
+# Portable fallback scheduler for the trending/pre-built movie packs.
+#
+# If you deploy on Vercel, `vercel.json` already schedules the refresh via
+# Vercel Cron and you don't need this. This workflow is for hosts without a
+# built-in cron. To use it, set two repo secrets (Settings → Secrets and
+# variables → Actions):
+#   • SITE_URL     e.g. https://your-domain.com   (no trailing slash)
+#   • CRON_SECRET  the same value as the deployed app's CRON_SECRET env var
+# Until both are set, scheduled runs skip cleanly (green), rather than failing.
+
 on:
   schedule:
     - cron: "0 12 * * 1" # Mondays 12:00 UTC
@@ -12,7 +20,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Hit the refresh endpoint
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          curl --fail --silent --show-error \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.SITE_URL }}/api/cron/refresh-packs"
+          set -euo pipefail
+
+          if [ -z "${SITE_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            echo "⏭️  Skipping: set the SITE_URL and CRON_SECRET repo secrets to enable."
+            echo "   (If you're on Vercel, vercel.json handles this and you can ignore this workflow.)"
+            exit 0
+          fi
+
+          case "$SITE_URL" in
+            http://*|https://*) ;;
+            *) echo "::error::SITE_URL must include the scheme, e.g. https://your-domain.com"; exit 1 ;;
+          esac
+
+          url="${SITE_URL%/}/api/cron/refresh-packs"
+          echo "Refreshing packs via $url"
+          # -f makes curl exit non-zero on HTTP >= 400 so the run reflects failures.
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "$url"
