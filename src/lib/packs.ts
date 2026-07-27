@@ -6,7 +6,7 @@ import { listPacks, listPackItems, listPackHistory } from "@/db/schema";
 import {
   getTrending,
   getNowPlaying,
-  getPopular,
+  getTopRated,
   searchMovies,
   type TmdbSearchResult,
 } from "@/lib/tmdb";
@@ -139,15 +139,20 @@ export const PACK_REGISTRY: PackDef[] = [
   },
   {
     slug: "crowd-pleasers",
-    title: "All-Time Crowd-Pleasers",
-    description: "The highest-voted films almost any group will sit through.",
+    title: "All-Time Classics",
+    description:
+      "The highest-rated films of all time — the enduring classics almost any group will sit through.",
     kind: "popular",
     refreshStrategy: "weekly",
     sortOrder: 3,
     build: async () => {
-      const data = await getPopular();
+      // top_rated is the all-time best, not what's currently popular. Pull two
+      // pages and keep the widely-seen ones so it reads as recognizable classics.
+      const [p1, p2] = await Promise.all([getTopRated(1), getTopRated(2)]);
       const items = dedupe(
-        (data.results ?? []).filter((r) => usable(r, 500)).map(snapshot),
+        [...(p1.results ?? []), ...(p2.results ?? [])]
+          .filter((r) => usable(r, 2000))
+          .map(snapshot),
       ).slice(0, PACK_LIMIT);
       return { items, degraded: false };
     },

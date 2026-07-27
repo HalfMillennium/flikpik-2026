@@ -113,6 +113,16 @@ export async function getNowPlaying(page = 1): Promise<TmdbSearchResponse> {
   return res.json();
 }
 
+/** All-time highest-rated films — the enduring classics. */
+export async function getTopRated(page = 1): Promise<TmdbSearchResponse> {
+  const res = await fetch(
+    `${TMDB_BASE}/movie/top_rated?page=${page}`,
+    { headers: headers(), next: { revalidate: 86400 } },
+  );
+  if (!res.ok) throw new Error(`TMDB top_rated failed: ${res.status}`);
+  return res.json();
+}
+
 /** Extract the US MPAA rating from a TMDB release_dates response. */
 export function extractMpaaRating(releaseDates: unknown): string {
   const rd = releaseDates as
