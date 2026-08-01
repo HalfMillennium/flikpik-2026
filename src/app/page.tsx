@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { Logo } from "@/components/ui/Logo";
 import { ButtonLink } from "@/components/ui/Button";
 import { Footer } from "@/components/layout/Footer";
+import { LandingNav } from "@/components/layout/LandingNav";
 import { GuestEntryButton } from "@/components/layout/GuestEntryButton";
 import { PixelField } from "@/components/ui/PixelField";
 import { PackShowcase } from "@/components/packs/PackShowcase";
@@ -25,39 +26,9 @@ export default async function LandingPage() {
     <div className="relative">
       {/* Navbar */}
       <header className="sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--color-paper)]/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Logo />
-          <div className="flex items-center gap-2">
-            <Link
-              href="/lists"
-              className="rounded-full px-4 py-2 text-[15px] font-medium hover:bg-[var(--color-paper-tint)]"
-            >
-              Lists
-            </Link>
-            <Link
-              href="/blog"
-              className="rounded-full px-4 py-2 text-[15px] font-medium hover:bg-[var(--color-paper-tint)]"
-            >
-              Blog
-            </Link>
-            {signedIn ? (
-              <ButtonLink href="/watchlist" size="sm">
-                Open app
-              </ButtonLink>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="rounded-full px-4 py-2 text-[15px] font-medium hover:bg-[var(--color-paper-tint)]"
-                >
-                  Log in
-                </Link>
-                <ButtonLink href="/signup" size="sm">
-                  Sign up
-                </ButtonLink>
-              </>
-            )}
-          </div>
+          <LandingNav signedIn={signedIn} />
         </div>
       </header>
 
