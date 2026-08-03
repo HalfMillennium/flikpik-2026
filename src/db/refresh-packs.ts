@@ -13,17 +13,9 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 config({ path: ".env" });
 
-async function main() {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) throw new Error("CRON_SECRET missing (set it in .env.local)");
-
-  const base =
-    process.env.REFRESH_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3000";
-  const url = `${base.replace(/\/$/, "")}/api/cron/refresh-packs`;
-
-  console.log(`🎬 Refreshing packs via ${url} …`);
+async function refreshEndpoint(base: string, path: string, secret: string) {
+  const url = `${base.replace(/\/$/, "")}${path}`;
+  console.log(`🎬 Refreshing via ${url} …`);
   const res = await fetch(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${secret}` },
@@ -38,9 +30,22 @@ async function main() {
   for (const s of data.refreshed ?? []) {
     console.log(
       `  · ${s.slug}: ${s.count} movies (${s.newCount} new)` +
-        (s.degraded ? " [degraded → TMDB fallback]" : ""),
+        (s.degraded ? " [degraded]" : ""),
     );
   }
+}
+
+async function main() {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) throw new Error("CRON_SECRET missing (set it in .env.local)");
+
+  const base =
+    process.env.REFRESH_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "http://localhost:3000";
+
+  await refreshEndpoint(base, "/api/cron/refresh-packs", secret);
+  await refreshEndpoint(base, "/api/cron/refresh-letterboxd", secret);
   console.log("✅ Done.");
 }
 

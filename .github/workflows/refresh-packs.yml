@@ -37,9 +37,15 @@ jobs:
             *) echo "::error::SITE_URL must include the scheme, e.g. https://your-domain.com"; exit 1 ;;
           esac
 
-          url="${SITE_URL%/}/api/cron/refresh-packs"
-          echo "Refreshing packs via $url"
-          # -f makes curl exit non-zero on HTTP >= 400 so the run reflects failures.
-          curl -fsS -X POST \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
-            "$url"
+          # Sequential on purpose — mirrors the 30-minute offset between the
+          # two Vercel crons without holding a runner open. GitHub's IPs also
+          # dodge the datacenter blocks Letterboxd may apply to Vercel's.
+          for path in /api/cron/refresh-packs /api/cron/refresh-letterboxd; do
+            url="${SITE_URL%/}${path}"
+            echo "Refreshing via $url"
+            # -f makes curl exit non-zero on HTTP >= 400 so the run reflects failures.
+            curl -fsS -X POST \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              "$url"
+            echo
+          done
