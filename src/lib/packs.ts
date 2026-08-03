@@ -3,14 +3,7 @@ import { unstable_cache } from "next/cache";
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { listPacks, listPackItems, listPackHistory } from "@/db/schema";
-import {
-  getTrending,
-  getNowPlaying,
-  getTopRated,
-  searchMovies,
-  type TmdbSearchResult,
-} from "@/lib/tmdb";
-import { getDailyTrends } from "@/lib/google-trends";
+import { getTrending, type TmdbSearchResult } from "@/lib/tmdb";
 
 const PACK_LIMIT = 24;
 const MIN_VOTES = 40;
@@ -20,6 +13,7 @@ export type PackKind =
   | "now_playing"
   | "popular"
   | "search_trends"
+  | "community"
   | "seasonal"
   | "mood";
 
@@ -30,7 +24,7 @@ export type PackItemSnapshot = {
   releaseDate: string | null;
 };
 
-type BuildResult = { items: PackItemSnapshot[]; degraded: boolean };
+export type BuildResult = { items: PackItemSnapshot[]; degraded: boolean };
 
 export type PackDef = {
   slug: string;
@@ -56,7 +50,7 @@ function usable(r: TmdbSearchResult, minVotes = MIN_VOTES): boolean {
   return !!r.poster_path && (r.vote_count ?? 0) >= minVotes;
 }
 
-function dedupe(items: PackItemSnapshot[]): PackItemSnapshot[] {
+export function dedupe(items: PackItemSnapshot[]): PackItemSnapshot[] {
   const seen = new Set<number>();
   const out: PackItemSnapshot[] = [];
   for (const it of items) {
@@ -75,32 +69,9 @@ async function fromTmdbTrending(): Promise<BuildResult> {
   return { items, degraded: false };
 }
 
-/**
- * Google Trends RSS → matched to TMDB. Best-effort: if the feed is degraded or
- * yields no movie matches, fall back to TMDB trending so the pack is never
- * empty — and mark it degraded (richer than "show nothing").
- */
-async function fromSearchTrends(): Promise<BuildResult> {
-  const { terms, degraded } = await getDailyTrends("US");
-  if (!degraded && terms.length) {
-    const searches = await Promise.allSettled(
-      terms.slice(0, 20).map((t) => searchMovies(t.query)),
-    );
-    const matched: PackItemSnapshot[] = [];
-    for (const s of searches) {
-      if (s.status !== "fulfilled") continue;
-      const top = (s.value.results ?? []).find((r) => usable(r, 20));
-      if (top) matched.push(snapshot(top));
-    }
-    const items = dedupe(matched).slice(0, PACK_LIMIT);
-    if (items.length >= 6) return { items, degraded: false };
-  }
-  // Fallback: trending is a fine stand-in for "what's hot right now".
-  const fallback = await fromTmdbTrending();
-  return { items: fallback.items, degraded: true };
-}
-
 // ── registry (packs live in code, are populated by cron/first-run) ─────────
+// TMDB only sources the trending pack (it has a purpose-built endpoint);
+// every other rotating pack comes from Letterboxd via letterboxd-packs.ts.
 export const PACK_REGISTRY: PackDef[] = [
   {
     slug: "trending-this-week",
@@ -111,51 +82,6 @@ export const PACK_REGISTRY: PackDef[] = [
     refreshStrategy: "weekly",
     sortOrder: 0,
     build: fromTmdbTrending,
-  },
-  {
-    slug: "in-theaters-now",
-    title: "In Theaters Now",
-    description: "Currently on the big screen — settle the group before you go.",
-    kind: "now_playing",
-    refreshStrategy: "weekly",
-    sortOrder: 1,
-    build: async () => {
-      const data = await getNowPlaying();
-      const items = dedupe(
-        (data.results ?? []).filter((r) => usable(r, 20)).map(snapshot),
-      ).slice(0, PACK_LIMIT);
-      return { items, degraded: false };
-    },
-  },
-  {
-    slug: "trending-in-search",
-    title: "Trending in Search",
-    description:
-      "Movies breaking out in Google search this week — a velocity signal on top of the charts.",
-    kind: "search_trends",
-    refreshStrategy: "weekly",
-    sortOrder: 2,
-    build: fromSearchTrends,
-  },
-  {
-    slug: "crowd-pleasers",
-    title: "All-Time Classics",
-    description:
-      "The highest-rated films of all time — the enduring classics almost any group will sit through.",
-    kind: "popular",
-    refreshStrategy: "weekly",
-    sortOrder: 3,
-    build: async () => {
-      // top_rated is the all-time best, not what's currently popular. Pull two
-      // pages and keep the widely-seen ones so it reads as recognizable classics.
-      const [p1, p2] = await Promise.all([getTopRated(1), getTopRated(2)]);
-      const items = dedupe(
-        [...(p1.results ?? []), ...(p2.results ?? [])]
-          .filter((r) => usable(r, 2000))
-          .map(snapshot),
-      ).slice(0, PACK_LIMIT);
-      return { items, degraded: false };
-    },
   },
 ];
 
@@ -171,28 +97,52 @@ export type RefreshSummary = {
   degraded: boolean;
 };
 
-export async function refreshPack(def: PackDef): Promise<RefreshSummary> {
-  const built = await def.build();
+export type PackMaterialization = {
+  slug: string;
+  title: string;
+  description: string;
+  kind: PackKind;
+  refreshStrategy: "weekly" | "daily" | "manual";
+  sortOrder: number;
+  sourceConfig?: Record<string, unknown>;
+};
 
-  // Ensure the pack row exists (declared in code, kept in sync here).
+export async function refreshPack(def: PackDef): Promise<RefreshSummary> {
+  return materializePack(def, await def.build());
+}
+
+/**
+ * Persist a built pack: upsert the row by slug, replace its items, bump the
+ * version, and record history. Shared by the static registry and dynamically
+ * discovered packs (Letterboxd). Always reactivates the pack — a list that
+ * rotated out and back in becomes visible again.
+ */
+export async function materializePack(
+  meta: PackMaterialization,
+  built: BuildResult,
+): Promise<RefreshSummary> {
   const [pack] = await db
     .insert(listPacks)
     .values({
-      slug: def.slug,
-      title: def.title,
-      description: def.description,
-      kind: def.kind,
-      refreshStrategy: def.refreshStrategy,
-      sortOrder: def.sortOrder,
+      slug: meta.slug,
+      title: meta.title,
+      description: meta.description,
+      kind: meta.kind,
+      refreshStrategy: meta.refreshStrategy,
+      sortOrder: meta.sortOrder,
+      sourceConfig: meta.sourceConfig ?? {},
+      isActive: true,
     })
     .onConflictDoUpdate({
       target: listPacks.slug,
       set: {
-        title: def.title,
-        description: def.description,
-        kind: def.kind,
-        refreshStrategy: def.refreshStrategy,
-        sortOrder: def.sortOrder,
+        title: meta.title,
+        description: meta.description,
+        kind: meta.kind,
+        refreshStrategy: meta.refreshStrategy,
+        sortOrder: meta.sortOrder,
+        sourceConfig: meta.sourceConfig ?? {},
+        isActive: true,
         updatedAt: new Date(),
       },
     })
@@ -239,7 +189,7 @@ export async function refreshPack(def: PackDef): Promise<RefreshSummary> {
   });
 
   return {
-    slug: def.slug,
+    slug: meta.slug,
     count: built.items.length,
     newCount,
     degraded: built.degraded,
@@ -314,35 +264,48 @@ export function freshness(p: Pick<PackSummary, "refreshStrategy" | "degraded" | 
 export type PackPreview = PackSummary & { posterPaths: string[] };
 
 /**
- * Active packs plus their first few poster paths — for the landing-page
- * showcase. Posters come from the snapshot columns, so no TMDB call. Cached
+ * Attach each pack's first few poster paths from the snapshot columns — no
+ * TMDB call. Shared by the landing-page showcase and the /lists index.
+ */
+export async function attachPosterPaths(
+  packs: PackSummary[],
+  postersPerPack = 5,
+): Promise<PackPreview[]> {
+  if (packs.length === 0) return [];
+  const posterRows = await db
+    .select({
+      slug: listPacks.slug,
+      posterPath: listPackItems.posterPath,
+    })
+    .from(listPackItems)
+    .innerJoin(listPacks, eq(listPackItems.packId, listPacks.id))
+    .where(
+      and(
+        inArray(listPacks.slug, packs.map((p) => p.slug)),
+        isNotNull(listPackItems.posterPath),
+      ),
+    )
+    .orderBy(asc(listPackItems.position));
+  const bySlug = new Map<string, string[]>();
+  for (const r of posterRows) {
+    const paths = bySlug.get(r.slug) ?? [];
+    if (paths.length < postersPerPack && r.posterPath) paths.push(r.posterPath);
+    bySlug.set(r.slug, paths);
+  }
+  return packs.map((p) => ({ ...p, posterPaths: bySlug.get(p.slug) ?? [] }));
+}
+
+/**
+ * Active packs plus poster previews — for the landing-page showcase. Cached
  * because the homepage is dynamic (auth) and packs only change on refresh.
  */
 export const getPackPreviews = unstable_cache(
   async (postersPerPack = 5): Promise<PackPreview[]> => {
-    const packs = await getActivePacks();
-    if (packs.length === 0) return [];
-    const posterRows = await db
-      .select({
-        slug: listPacks.slug,
-        posterPath: listPackItems.posterPath,
-      })
-      .from(listPackItems)
-      .innerJoin(listPacks, eq(listPackItems.packId, listPacks.id))
-      .where(
-        and(
-          inArray(listPacks.slug, packs.map((p) => p.slug)),
-          isNotNull(listPackItems.posterPath),
-        ),
-      )
-      .orderBy(asc(listPackItems.position));
-    const bySlug = new Map<string, string[]>();
-    for (const r of posterRows) {
-      const paths = bySlug.get(r.slug) ?? [];
-      if (paths.length < postersPerPack && r.posterPath) paths.push(r.posterPath);
-      bySlug.set(r.slug, paths);
-    }
-    return packs.map((p) => ({ ...p, posterPaths: bySlug.get(p.slug) ?? [] }));
+    // Homepage showcase stays limited to the curated packs.
+    const packs = (await getActivePacks()).filter(
+      (p) => p.kind !== "community",
+    );
+    return attachPosterPaths(packs, postersPerPack);
   },
   ["pack-previews"],
   { revalidate: 3600 },
@@ -374,9 +337,13 @@ export type LaunchablePack = {
   tmdbIds: number[];
 };
 
-/** Active packs with their movie ids — for the one-tap in-app launch tiles. */
+/**
+ * Active packs with their movie ids — for the one-tap in-app launch tiles.
+ * Community (Letterboxd-sourced) packs are excluded so the curated tiles on
+ * /rooms/new stay focused; they're still launchable from their list pages.
+ */
 export async function getLaunchablePacks(): Promise<LaunchablePack[]> {
-  const packs = await getActivePacks();
+  const packs = (await getActivePacks()).filter((p) => p.kind !== "community");
   const detailed = await Promise.all(
     packs.map(async (p) => {
       const d = await getPackBySlug(p.slug);
@@ -395,10 +362,12 @@ export async function getLaunchablePacks(): Promise<LaunchablePack[]> {
 }
 
 export async function getPackBySlug(slug: string): Promise<PackDetail | null> {
+  // No isActive filter on purpose: packs that rotate out of the index stay
+  // viewable at their URL (snapshots render fine; shared links keep working).
   const [pack] = await db
     .select()
     .from(listPacks)
-    .where(and(eq(listPacks.slug, slug), eq(listPacks.isActive, true)))
+    .where(eq(listPacks.slug, slug))
     .limit(1);
   if (!pack) return null;
 

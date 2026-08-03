@@ -50,11 +50,15 @@ export type TmdbMovieDetail = TmdbSearchResult & {
 export async function searchMovies(
   query: string,
   page = 1,
+  opts?: { primaryReleaseYear?: number },
 ): Promise<TmdbSearchResponse> {
+  const year = opts?.primaryReleaseYear
+    ? `&primary_release_year=${opts.primaryReleaseYear}`
+    : "";
   const res = await fetch(
     `${TMDB_BASE}/search/movie?query=${encodeURIComponent(
       query,
-    )}&page=${page}&include_adult=false`,
+    )}&page=${page}&include_adult=false${year}`,
     { headers: headers(), next: { revalidate: 300 } },
   );
   if (!res.ok) throw new Error(`TMDB search failed: ${res.status}`);

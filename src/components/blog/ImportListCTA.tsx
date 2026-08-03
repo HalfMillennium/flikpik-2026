@@ -69,7 +69,7 @@ export function ImportListCTA({
         </p>
         <div className="mt-4 flex justify-center">
           <Button size="lg" onClick={() => setOpen(true)}>
-            Start a session with this list
+            Start a session
           </Button>
         </div>
       </div>

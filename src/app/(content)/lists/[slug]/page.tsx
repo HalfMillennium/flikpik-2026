@@ -56,6 +56,11 @@ async function resolve(slug: string): Promise<Resolved | null> {
       title: pack.title,
       description: pack.description ?? "",
       freshness,
+      // Source-neutral by design — community packs don't name their origin.
+      method:
+        pack.kind === "community"
+          ? "A community-curated list trending this week. Films are matched to our catalog automatically; titles we can't match are left out."
+          : undefined,
       // Items are snapshotted — no TMDB call needed.
       movies: pack.items,
     };
