@@ -131,6 +131,9 @@ export const decisionSessions = pgTable("decision_sessions", {
     .references(() => groups.id, { onDelete: "cascade" }),
   status: varchar("status", { length: 20 }).default("lobby").notNull(),
   mpaaFilters: jsonb("mpaa_filters").$type<string[]>().default([]),
+  decisionRule: varchar("decision_rule", { length: 16 })
+    .default("majority")
+    .notNull(),
   voteThreshold: integer("vote_threshold").notNull(),
   winnerMovieId: uuid("winner_movie_id").references(() => movies.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -210,6 +213,9 @@ export const rooms = pgTable(
     hostToken: varchar("host_token", { length: 64 }).notNull(),
     status: varchar("status", { length: 20 }).default("lobby").notNull(),
     mpaaFilters: jsonb("mpaa_filters").$type<string[]>().default([]),
+    decisionRule: varchar("decision_rule", { length: 16 })
+      .default("majority")
+      .notNull(),
     voteThreshold: integer("vote_threshold").default(0).notNull(),
     winnerMovieId: uuid("winner_movie_id").references(() => movies.id),
     locked: boolean("locked").default(false).notNull(),

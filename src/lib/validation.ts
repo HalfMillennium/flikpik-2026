@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MPAA_RATINGS } from "@/lib/utils";
+import { DECISION_RULES, MPAA_RATINGS } from "@/lib/utils";
 
 export const signupSchema = z.object({
   email: z.string().email("Enter a valid email").max(255),
@@ -65,6 +65,7 @@ export const groupActionSchema = z.discriminatedUnion("action", [
 
 export const startSessionSchema = z.object({
   mpaaFilters: z.array(z.enum(MPAA_RATINGS)).min(1),
+  decisionRule: z.enum(DECISION_RULES).optional().default("majority"),
 });
 
 export const voteSchema = z.object({
@@ -102,6 +103,7 @@ export const roomReadySchema = z.object({
 export const roomStartSchema = z.object({
   hostToken: roomToken,
   mpaaFilters: z.array(z.enum(MPAA_RATINGS)).min(1),
+  decisionRule: z.enum(DECISION_RULES).optional().default("majority"),
 });
 
 export const roomVoteSchema = z.object({

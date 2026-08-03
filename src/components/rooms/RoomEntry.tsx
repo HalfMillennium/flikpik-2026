@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Field } from "@/components/ui/Field";
+import { Switch } from "@/components/ui/Switch";
 import { useToast } from "@/components/providers/ToastProvider";
 import { useGuest } from "@/components/providers/GuestProvider";
 import { saveRoomCreds } from "@/lib/room-client";
@@ -132,14 +133,9 @@ export function RoomEntry({
           />
         )}
         {guest.list.length > 0 && (
-          <label className="mt-3 flex items-center gap-2 text-sm text-[var(--color-ink-soft)]">
-            <input
-              type="checkbox"
-              checked={seedList}
-              onChange={(e) => setSeedList(e.target.checked)}
-            />
+          <Switch checked={seedList} onChange={setSeedList} className="mt-4">
             Start the pool with my saved list ({guest.list.length})
-          </label>
+          </Switch>
         )}
       </Modal>
 

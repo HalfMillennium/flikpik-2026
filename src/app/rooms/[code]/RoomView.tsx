@@ -18,6 +18,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Spinner } from "@/components/ui/Spinner";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
+import { Switch } from "@/components/ui/Switch";
 import { Field } from "@/components/ui/Field";
 import { SearchBar } from "@/components/movies/SearchBar";
 import { useToast } from "@/components/providers/ToastProvider";
@@ -28,7 +29,11 @@ import {
   readHostFragment,
   type RoomCreds,
 } from "@/lib/room-client";
-import { MPAA_RATINGS, type MpaaRating } from "@/lib/utils";
+import {
+  MPAA_RATINGS,
+  type DecisionRule,
+  type MpaaRating,
+} from "@/lib/utils";
 
 export function RoomView({ code }: { code: string }) {
   const [creds, setCreds] = useState<RoomCreds | null>(null);
@@ -144,7 +149,11 @@ export function RoomView({ code }: { code: string }) {
       <WinnerReveal
         title={state.winner.title}
         posterPath={state.winner.posterPath}
-        eyebrow="The room picked"
+        eyebrow={
+          state.decisionRule === "consensus"
+            ? "Everyone agreed"
+            : "The room picked"
+        }
         actions={
           <>
             <ButtonLink href="/rooms/new">Start another</ButtonLink>
@@ -242,14 +251,9 @@ function JoinGate({
           />
         )}
         {guest.list.length > 0 && (
-          <label className="flex items-center gap-2 text-sm text-[var(--color-ink-soft)]">
-            <input
-              type="checkbox"
-              checked={bringList}
-              onChange={(e) => setBringList(e.target.checked)}
-            />
+          <Switch checked={bringList} onChange={setBringList}>
             Add my saved list ({guest.list.length}) to the pool
-          </label>
+          </Switch>
         )}
         <Button onClick={join} disabled={busy} className="w-full">
           {busy ? "Joining…" : "Join room"}
@@ -438,6 +442,7 @@ function StartModal({
   onState: (s: RoomState) => void;
 }) {
   const [filters, setFilters] = useState<Set<MpaaRating>>(new Set(MPAA_RATINGS));
+  const [rule, setRule] = useState<DecisionRule>("majority");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -462,6 +467,7 @@ function StartModal({
       body: JSON.stringify({
         hostToken: creds.hostToken,
         mpaaFilters: Array.from(filters),
+        decisionRule: rule,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -488,8 +494,7 @@ function StartModal({
       }
     >
       <p className="mb-3 text-sm text-[var(--color-ink-soft)]">
-        Which ratings should be in the pool? Everyone in the room swipes; first
-        movie to a majority wins.
+        Which ratings should be in the pool?
       </p>
       <div className="flex flex-wrap gap-2">
         {MPAA_RATINGS.map((r) => (
@@ -498,6 +503,23 @@ function StartModal({
           </Chip>
         ))}
       </div>
+      <p className="mb-2 mt-5 text-sm font-medium">How does a movie win?</p>
+      <div className="flex flex-wrap gap-2">
+        <Chip active={rule === "majority"} onClick={() => setRule("majority")}>
+          Majority
+        </Chip>
+        <Chip
+          active={rule === "consensus"}
+          onClick={() => setRule("consensus")}
+        >
+          Everyone must agree
+        </Chip>
+      </div>
+      <p className="mt-2 text-xs text-[var(--color-ink-soft)]">
+        {rule === "majority"
+          ? "First movie to get a yes from more than half the room wins."
+          : "A movie only wins if every single person says yes to it."}
+      </p>
       {error && (
         <p role="alert" className="mt-3 text-sm text-[var(--color-red-deep)]">
           {error}
@@ -761,8 +783,15 @@ function NoConsensus({ state }: { state: RoomState }) {
     <div className="mx-auto max-w-md py-10 text-center">
       <h1 className="type-display">No consensus reached</h1>
       <p className="mt-2 text-[var(--color-ink-soft)]">
-        No movie got enough votes this time.
+        {state.decisionRule === "consensus"
+          ? "No movie got a yes from everyone this time."
+          : "No movie got enough votes this time."}
       </p>
+      <Chip as="span" className="mt-3">
+        {state.decisionRule === "consensus"
+          ? "Rule: everyone must agree"
+          : "Rule: majority vote"}
+      </Chip>
       {top && top.voteCount > 0 && (
         <div className="mt-6 rounded-xl border border-[var(--color-line)] bg-[var(--color-paper-raised)] p-4">
           <div className="text-xs uppercase tracking-widest text-[var(--color-red)]">

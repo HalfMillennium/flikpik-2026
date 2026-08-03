@@ -69,3 +69,13 @@ export function generateInviteCode(): string {
 
 export const MPAA_RATINGS = ["G", "PG", "PG-13", "R", "NC-17"] as const;
 export type MpaaRating = (typeof MPAA_RATINGS)[number];
+
+export const DECISION_RULES = ["majority", "consensus"] as const;
+export type DecisionRule = (typeof DECISION_RULES)[number];
+
+/** Votes a movie needs to win under the given rule, for a fixed roster size. */
+export function voteThresholdFor(count: number, rule: DecisionRule): number {
+  return rule === "consensus"
+    ? Math.max(1, count)
+    : Math.max(1, Math.floor(count / 2) + 1);
+}

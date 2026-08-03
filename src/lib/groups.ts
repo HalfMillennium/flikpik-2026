@@ -191,6 +191,7 @@ export async function getGroupDetail(userId: string, groupId: string) {
     .select({
       id: decisionSessions.id,
       status: decisionSessions.status,
+      decisionRule: decisionSessions.decisionRule,
       endedAt: decisionSessions.endedAt,
       createdAt: decisionSessions.createdAt,
       winnerTitle: movies.title,
@@ -227,6 +228,7 @@ export async function getGroupDetail(userId: string, groupId: string) {
     pastSessions: pastSessions.map((p) => ({
       id: p.id,
       status: p.status,
+      decisionRule: p.decisionRule,
       date: (p.endedAt ?? p.createdAt).toISOString(),
       winnerTitle: p.winnerTitle,
       winnerPoster: p.winnerPoster,

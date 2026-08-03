@@ -7,6 +7,7 @@ import { VotingProgress } from "@/components/groups/VotingProgress";
 import { WinnerReveal } from "@/components/groups/WinnerReveal";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
+import { Chip } from "@/components/ui/Chip";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/providers/ToastProvider";
 
@@ -99,6 +100,9 @@ export function SessionRoom({
         title={state.winner.title}
         posterPath={state.winner.posterPath}
         groupId={groupId}
+        {...(state.decisionRule === "consensus"
+          ? { eyebrow: "Everyone agreed" }
+          : {})}
       />
     );
   }
@@ -153,8 +157,9 @@ function Lobby({
       </p>
       <h1 className="type-display mt-1">Waiting for everyone</h1>
       <p className="mt-2 text-[var(--color-ink-soft)]">
-        {state.movies.length} movies in the pool · first to {state.voteThreshold}{" "}
-        {state.voteThreshold === 1 ? "vote" : "votes"} wins
+        {state.decisionRule === "consensus"
+          ? `${state.movies.length} movies in the pool · everyone (${state.members.length}) must say yes`
+          : `${state.movies.length} movies in the pool · first to ${state.voteThreshold} ${state.voteThreshold === 1 ? "vote" : "votes"} wins`}
       </p>
 
       <ul className="mt-8 space-y-2 text-left">
@@ -327,8 +332,15 @@ function NoConsensus({
     <div className="mx-auto max-w-md py-10 text-center">
       <h1 className="type-display">No consensus reached</h1>
       <p className="mt-2 text-[var(--color-ink-soft)]">
-        No movie got enough votes this time.
+        {state.decisionRule === "consensus"
+          ? "No movie got a yes from everyone this time."
+          : "No movie got enough votes this time."}
       </p>
+      <Chip as="span" className="mt-3">
+        {state.decisionRule === "consensus"
+          ? "Rule: everyone must agree"
+          : "Rule: majority vote"}
+      </Chip>
       {top && top.voteCount > 0 && (
         <div className="mt-6 rounded-xl border border-[var(--color-line)] bg-[var(--color-paper-raised)] p-4">
           <div className="text-xs uppercase tracking-widest text-[var(--color-red)]">

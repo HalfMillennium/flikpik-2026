@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { useToast } from "@/components/providers/ToastProvider";
-import { MPAA_RATINGS, type MpaaRating } from "@/lib/utils";
+import {
+  MPAA_RATINGS,
+  type DecisionRule,
+  type MpaaRating,
+} from "@/lib/utils";
 
 export function LeaderControls({ groupId }: { groupId: string }) {
   const router = useRouter();
@@ -15,6 +19,7 @@ export function LeaderControls({ groupId }: { groupId: string }) {
   const [filters, setFilters] = useState<Set<MpaaRating>>(
     new Set(MPAA_RATINGS),
   );
+  const [rule, setRule] = useState<DecisionRule>("majority");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -37,6 +42,7 @@ export function LeaderControls({ groupId }: { groupId: string }) {
       body: JSON.stringify({
         action: "start",
         mpaaFilters: Array.from(filters),
+        decisionRule: rule,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -78,6 +84,26 @@ export function LeaderControls({ groupId }: { groupId: string }) {
             </Chip>
           ))}
         </div>
+        <p className="mb-2 mt-5 text-sm font-medium">How does a movie win?</p>
+        <div className="flex flex-wrap gap-2">
+          <Chip
+            active={rule === "majority"}
+            onClick={() => setRule("majority")}
+          >
+            Majority
+          </Chip>
+          <Chip
+            active={rule === "consensus"}
+            onClick={() => setRule("consensus")}
+          >
+            Everyone must agree
+          </Chip>
+        </div>
+        <p className="mt-2 text-xs text-[var(--color-ink-soft)]">
+          {rule === "majority"
+            ? "First movie to get a yes from more than half the group wins."
+            : "A movie only wins if every single person says yes to it."}
+        </p>
         {error && (
           <p role="alert" className="mt-3 text-sm text-[var(--color-red-deep)]">
             {error}

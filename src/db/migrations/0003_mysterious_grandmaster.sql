@@ -1,0 +1,2 @@
+ALTER TABLE "decision_sessions" ADD COLUMN "decision_rule" varchar(16) DEFAULT 'majority' NOT NULL;--> statement-breakpoint
+ALTER TABLE "rooms" ADD COLUMN "decision_rule" varchar(16) DEFAULT 'majority' NOT NULL;

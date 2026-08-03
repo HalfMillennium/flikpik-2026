@@ -12,12 +12,17 @@ import {
   sessionVotes,
   sessionMembers,
 } from "@/db/schema";
-import type { MpaaRating } from "@/lib/utils";
+import {
+  voteThresholdFor,
+  type DecisionRule,
+  type MpaaRating,
+} from "@/lib/utils";
 
 export type SessionState = {
   id: string;
   status: "lobby" | "voting" | "decided" | "no_consensus";
   voteThreshold: number;
+  decisionRule: DecisionRule;
   isLeader: boolean;
   mpaaFilters: string[];
   members: {
@@ -83,6 +88,7 @@ export async function startSession(
   userId: string,
   groupId: string,
   mpaaFilters: MpaaRating[],
+  decisionRule: DecisionRule,
 ) {
   const [group] = await db
     .select()
@@ -141,7 +147,7 @@ export async function startSession(
     };
   }
 
-  const voteThreshold = Math.floor(memberIds.length / 2) + 1;
+  const voteThreshold = voteThresholdFor(memberIds.length, decisionRule);
 
   const [session] = await db
     .insert(decisionSessions)
@@ -149,6 +155,7 @@ export async function startSession(
       groupId,
       status: "lobby",
       mpaaFilters,
+      decisionRule,
       voteThreshold,
     })
     .returning();
@@ -468,6 +475,7 @@ export async function getSessionState(
     id: session.id,
     status: session.status as SessionState["status"],
     voteThreshold: session.voteThreshold,
+    decisionRule: session.decisionRule as DecisionRule,
     isLeader: group?.leaderId === userId,
     mpaaFilters: (session.mpaaFilters as string[]) ?? [],
     members: memberRows.map((m) => ({

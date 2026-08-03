@@ -26,6 +26,7 @@ export async function POST(
       code,
       parsed.data.hostToken,
       parsed.data.mpaaFilters,
+      parsed.data.decisionRule,
     );
     if ("error" in result && result.error) return badRequest(result.error);
     // Return state scoped to the caller (their participant token in a header).

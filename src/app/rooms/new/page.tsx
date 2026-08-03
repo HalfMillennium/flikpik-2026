@@ -20,19 +20,21 @@ export default function NewRoomPage() {
           </ButtonLink>
         </div>
       </header>
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-6 py-12 text-center">
-        <GuestOnly>
-          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--color-red)]">
-            No account needed
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-6 py-12 text-center">
+        <div className="mx-auto w-full max-w-lg">
+          <GuestOnly>
+            <p className="text-sm font-semibold uppercase tracking-widest text-[var(--color-red)]">
+              No account needed
+            </p>
+          </GuestOnly>
+          <h1 className="type-hero mt-2">Movie night, right now.</h1>
+          <p className="mx-auto mt-4 max-w-sm text-lg text-[var(--color-ink-soft)]">
+            Spin up a room, share the code, everyone swipes. The first movie to
+            a majority wins — no sign-ups, nothing to install.
           </p>
-        </GuestOnly>
-        <h1 className="type-hero mt-2">Movie night, right now.</h1>
-        <p className="mx-auto mt-4 max-w-sm text-lg text-[var(--color-ink-soft)]">
-          Spin up a room, share the code, everyone swipes. The first movie to a
-          majority wins — no sign-ups, nothing to install.
-        </p>
-        <div className="mt-8 flex justify-center">
-          <RoomEntry />
+          <div className="mt-8 flex justify-center">
+            <RoomEntry />
+          </div>
         </div>
         <PackTiles />
       </main>

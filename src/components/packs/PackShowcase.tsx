@@ -29,7 +29,13 @@ export async function PackShowcase() {
           See all lists →
         </Link>
       </div>
-      <div className="mt-10 grid gap-6 sm:grid-cols-2">
+      <div
+        className={
+          packs.length === 1
+            ? "mx-auto mt-10 grid max-w-md gap-6"
+            : "mt-10 grid gap-6 sm:grid-cols-2"
+        }
+      >
         {packs.map((p) => (
           <Link
             key={p.slug}

@@ -15,7 +15,13 @@ export async function PackTiles({ heading }: { heading?: string }) {
       <h2 className="mb-4 text-center text-sm font-semibold uppercase tracking-widest text-[var(--color-ink-soft)]">
         {heading ?? "Or start from a pack"}
       </h2>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div
+        className={
+          packs.length === 1
+            ? "mx-auto grid max-w-sm gap-4"
+            : "grid gap-4 sm:grid-cols-2"
+        }
+      >
         {packs.map((p) => (
           <div
             key={p.slug}

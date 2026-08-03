@@ -10,7 +10,12 @@ import {
   movies,
   type Room,
 } from "@/db/schema";
-import { generateInviteCode, type MpaaRating } from "@/lib/utils";
+import {
+  generateInviteCode,
+  voteThresholdFor,
+  type DecisionRule,
+  type MpaaRating,
+} from "@/lib/utils";
 import { upsertMovieByTmdbId } from "@/lib/movies";
 
 // ── tunables ───────────────────────────────────────────────────────────────
@@ -47,6 +52,7 @@ export type RoomState = {
   isHost: boolean;
   locked: boolean;
   voteThreshold: number;
+  decisionRule: DecisionRule;
   mpaaFilters: string[];
   participants: {
     id: string;
@@ -269,6 +275,7 @@ export async function startRoom(
   code: string,
   hostToken: string,
   mpaaFilters: MpaaRating[],
+  decisionRule: DecisionRule,
 ) {
   const room = await getLiveRoom(code);
   if (!room) return { error: "That room doesn't exist or has expired" as const };
@@ -302,7 +309,7 @@ export async function startRoom(
     .select({ count: sql<number>`count(*)::int` })
     .from(roomParticipants)
     .where(eq(roomParticipants.roomId, room.id));
-  const voteThreshold = Math.floor(count / 2) + 1;
+  const voteThreshold = voteThresholdFor(count, decisionRule);
 
   await db
     .update(rooms)
@@ -310,6 +317,7 @@ export async function startRoom(
       status: "voting",
       locked: true,
       mpaaFilters,
+      decisionRule,
       voteThreshold,
       startedAt: new Date(),
     })
@@ -409,7 +417,7 @@ async function maybeResolveNoConsensus(roomId: string) {
   }
 }
 
-/** Recompute the majority threshold after the roster changes (join/kick). */
+/** Recompute the win threshold after the roster changes (join/kick). */
 async function recomputeThreshold(roomId: string) {
   const [room] = await db
     .select()
@@ -422,7 +430,7 @@ async function recomputeThreshold(roomId: string) {
     .select({ count: sql<number>`count(*)::int` })
     .from(roomParticipants)
     .where(eq(roomParticipants.roomId, roomId));
-  const threshold = Math.max(1, Math.floor(count / 2) + 1);
+  const threshold = voteThresholdFor(count, room.decisionRule as DecisionRule);
   await db
     .update(rooms)
     .set({ voteThreshold: threshold })
@@ -541,6 +549,7 @@ export async function getRoomState(
     isHost: me?.isHost ?? false,
     locked: room.locked,
     voteThreshold: room.voteThreshold,
+    decisionRule: room.decisionRule as DecisionRule,
     mpaaFilters: (room.mpaaFilters as string[]) ?? [],
     participants,
     movies: movieRows.map((m) => ({

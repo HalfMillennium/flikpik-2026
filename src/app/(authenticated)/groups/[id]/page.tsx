@@ -109,7 +109,8 @@ export default async function GroupDetailPage({
                       : "No consensus"}
                   </div>
                   <div className="text-sm text-[var(--color-ink-soft)]">
-                    {relativeTime(s.date)} · {s.memberCount} participated
+                    {relativeTime(s.date)} · {s.memberCount} participated ·{" "}
+                    {s.decisionRule === "consensus" ? "Unanimous" : "Majority"}
                   </div>
                 </div>
                 {s.status === "decided" && <Badge tone="red">Picked</Badge>}

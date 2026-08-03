@@ -301,11 +301,7 @@ export async function attachPosterPaths(
  */
 export const getPackPreviews = unstable_cache(
   async (postersPerPack = 5): Promise<PackPreview[]> => {
-    // Homepage showcase stays limited to the curated packs.
-    const packs = (await getActivePacks()).filter(
-      (p) => p.kind !== "community",
-    );
-    return attachPosterPaths(packs, postersPerPack);
+    return attachPosterPaths(await getActivePacks(), postersPerPack);
   },
   ["pack-previews"],
   { revalidate: 3600 },
@@ -337,13 +333,9 @@ export type LaunchablePack = {
   tmdbIds: number[];
 };
 
-/**
- * Active packs with their movie ids — for the one-tap in-app launch tiles.
- * Community (Letterboxd-sourced) packs are excluded so the curated tiles on
- * /rooms/new stay focused; they're still launchable from their list pages.
- */
+/** Active packs with their movie ids — for the one-tap in-app launch tiles. */
 export async function getLaunchablePacks(): Promise<LaunchablePack[]> {
-  const packs = (await getActivePacks()).filter((p) => p.kind !== "community");
+  const packs = await getActivePacks();
   const detailed = await Promise.all(
     packs.map(async (p) => {
       const d = await getPackBySlug(p.slug);

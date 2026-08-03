@@ -53,7 +53,12 @@ export async function POST(
 
   try {
     if (parsed.data.action === "start") {
-      const result = await startSession(userId, groupId, parsed.data.mpaaFilters);
+      const result = await startSession(
+        userId,
+        groupId,
+        parsed.data.mpaaFilters,
+        parsed.data.decisionRule,
+      );
       if ("error" in result && result.error) return badRequest(result.error);
       const state = await getSessionState(userId, groupId, result.session!.id);
       return NextResponse.json({ ok: true, state });

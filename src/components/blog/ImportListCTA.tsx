@@ -74,7 +74,7 @@ export function ImportListCTA({
         </div>
       </div>
     ) : (
-      <Button onClick={() => setOpen(true)}>Start a session with this list</Button>
+      <Button onClick={() => setOpen(true)}>Start a session</Button>
     );
 
   return (
